@@ -57,6 +57,8 @@ kbd { font-family:inherit; font-weight:800; background:#e9edf3; color:#1b1b2f; b
 .stats b { display:block; font-size:1.7em; color:var(--ink); }
 .badge { display:inline-block; background:#ff5d8f; color:#fff; border-radius:999px; padding:.12em .8em; font-weight:800; font-size:.8em; }
 .hidden { display:none !important; }
+.rotate-hint { display:none; max-width:30em; margin:14px 16px; text-align:center; color:var(--muted); font-size:15px; line-height:1.5; }
+@media (orientation: portrait) and (max-width: 700px) { .rotate-hint { display:block; } }
 </style>
 </head>
 <body>
@@ -120,6 +122,7 @@ kbd { font-family:inherit; font-weight:800; background:#e9edf3; color:#1b1b2f; b
     <div class="row"><button class="btn" id="btnOverRetry" type="button" data-primary>Try again</button><button class="btn ghost" id="btnOverMap" type="button">Level map</button></div>
   </section>
 </main>
+<p class="rotate-hint">Plumber Typing is a keyboard game. Turn your device sideways for a bigger view, or connect a keyboard.</p>
 <noscript><p style="padding:2em">Plumber Typing needs JavaScript turned on.</p></noscript>
 <script>
 (() => {
@@ -1130,7 +1133,8 @@ window.addEventListener('blur', () => pause());
 // ------------------------------------------------------------
 function fit() {
   const top = document.querySelector('.topbar').offsetHeight;
-  const aw = window.innerWidth - 16, ah = window.innerHeight - top - 14;
+  const hint = document.querySelector('.rotate-hint'), hintH = hint && hint.offsetHeight ? hint.offsetHeight + 28 : 0;
+  const aw = window.innerWidth - 16, ah = window.innerHeight - top - hintH - 14;
   const w = Math.max(280, Math.floor(Math.min(aw, ah * 16 / 9)));
   const h = Math.floor(w * 9 / 16);
   stage.style.width = w + 'px'; stage.style.height = h + 'px'; stage.style.fontSize = (w / 48) + 'px';
