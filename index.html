@@ -3,107 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcade — Free Flixx</title>
+<title>Learning Arcade</title>
+<meta name="description" content="Free browser games for kids: typing, math, spelling and geography. No sign-up, no ads, no tracking.">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #0d0d0d;
-    color: #fff;
-    min-height: 100vh;
-    padding: 2rem;
-  }
-  h1 { font-size: 2rem; margin-bottom: 0.3rem; color: #e50914; }
-  .subtitle { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.2rem;
-  }
-  .card {
-    background: linear-gradient(145deg, #1a1a1a, #222);
-    border: 1px solid #333;
-    border-radius: 12px;
-    padding: 2rem 1.5rem;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  .card:hover {
-    border-color: #e50914;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(229,9,20,0.15);
-  }
-  .icon { font-size: 3rem; margin-bottom: 1rem; }
-  .title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
-  .desc { color: #888; font-size: 0.85rem; line-height: 1.5; }
-  .play-btn {
-    margin-top: 1.2rem;
-    background: #e50914;
-    color: white;
-    border: none;
-    padding: 0.6rem 2rem;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .card:hover .play-btn { background: #f40612; }
-  .nav-bar {
-    display: flex; gap: 1rem; margin-bottom: 2rem;
-  }
-  .nav-bar a {
-    color: #888; text-decoration: none; font-size: 0.9rem;
-    padding: 0.3rem 0; border-bottom: 2px solid transparent;
-  }
-  .nav-bar a:hover { color: #fff; border-color: #e50914; }
-  .nav-bar a.active { color: #fff; border-color: #e50914; }
+:root { --bg:#0b1224; --card:#131d38; --ink:#f4f1e8; --muted:#a3b1c9; --gold:#ffd54f; --teal:#27c2b0; --line:#22305a; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:radial-gradient(1200px 600px at 15% -10%, #1d2d5c 0%, transparent 60%), var(--bg); color:var(--ink); font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif; min-height:100vh; }
+main { max-width:1120px; margin:0 auto; padding:44px 16px 56px; }
+h1 { font-size:clamp(2.3rem, 7vw, 3.8rem); font-weight:900; line-height:1; letter-spacing:.02em; color:var(--gold); text-shadow:0 .06em 0 #a86b00, 0 .12em 0 rgba(0,0,0,.35); }
+h1 span { color:var(--teal); text-shadow:0 .06em 0 #0f6f65, 0 .12em 0 rgba(0,0,0,.35); }
+.lede { color:var(--muted); margin-top:.8rem; font-size:1.08rem; line-height:1.5; max-width:42rem; }
+.pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1rem; }
+.pills span { font-size:.8rem; font-weight:700; background:#1a2750; border:1px solid var(--line); padding:.3rem .75rem; border-radius:999px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap:18px; margin-top:34px; }
+.card { display:flex; flex-direction:column; background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; text-decoration:none; color:inherit; transition:transform .15s, border-color .15s, box-shadow .15s; }
+.card:hover, .card:focus-visible { transform:translateY(-3px); border-color:var(--gold); box-shadow:0 14px 32px rgba(0,0,0,.4); outline:none; }
+.thumb { position:relative; aspect-ratio:16 / 10; background:#0a1020; overflow:hidden; }
+.thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.thumb .icon { position:absolute; inset:0; display:grid; place-items:center; font-size:4rem; }
+.tag { position:absolute; top:10px; left:10px; background:rgba(10,16,32,.88); color:var(--gold); font-weight:800; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; padding:.25rem .65rem; border-radius:999px; }
+.tag.new { left:auto; right:10px; background:#ff5d8f; color:#fff; }
+.body { padding:14px 16px 16px; display:flex; flex-direction:column; gap:.5rem; flex:1; }
+.body h2 { font-size:1.35rem; }
+.body p { color:var(--muted); font-size:.93rem; line-height:1.45; }
+.meta { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:auto; padding-top:.3rem; }
+.meta span { font-size:.75rem; font-weight:700; background:#1a2750; padding:.22rem .55rem; border-radius:6px; color:#dfe7f2; }
+.play { margin-top:.5rem; align-self:flex-start; background:var(--gold); color:#2b1a00; font-weight:900; padding:.45rem 1.25rem; border-radius:999px; box-shadow:0 .18rem 0 #a86b00; }
+footer { margin-top:48px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:.88rem; line-height:1.6; }
+footer a { color:var(--teal); }
 </style>
 </head>
 <body>
-  <div class="nav-bar">
-    <a href="https://vercel-site-nu-gray.vercel.app" target="_blank" rel="noopener">🎥 Free Flixx</a>
-    <a href="/" class="active">🎮 Arcade</a>
-    <a href="https://freellmapi-wine.vercel.app" target="_blank" rel="noopener">🤖 FreeLLMAPI</a>
-  </div>
-  <h1>🎮 Arcade</h1>
-  <p class="subtitle">Games and tools — right from your browser, zero setup</p>
-  <div class="grid">
+<main>
+  <header>
+    <h1>LEARNING <span>ARCADE</span></h1>
+    <p class="lede">Free browser games that turn practice into play: typing, math, spelling and geography. No sign-up, no ads, no tracking. Progress is saved on your device.</p>
+    <div class="pills"><span>Ages 6-12</span><span>Runs in any modern browser</span><span>Works offline</span></div>
+  </header>
+
+  <section class="grid" aria-label="Games">
+    <a class="card" href="plumber-typing.html">
+      <div class="thumb"><img src="docs/screenshots/plumber-typing.png" alt="Plumber Typing: Pip the plumber faces clogs carrying words" loading="lazy"><span class="tag">Typing</span><span class="tag new">New</span></div>
+      <div class="body">
+        <h2>Plumber Typing</h2>
+        <p>Learn to touch-type one row at a time. Type the word on each clog to help Pip the plumber clear the pipes. 12 levels, 4 bosses and an on-screen finger guide.</p>
+        <div class="meta"><span>Touch typing</span><span>Ages 7+</span><span>Keyboard</span></div>
+        <span class="play">&#9654; Play</span>
+      </div>
+    </a>
+    <a class="card" href="mathman.html">
+      <div class="thumb"><img src="docs/screenshots/mathman-quiz.png" alt="MathMan: a math problem pops up in the maze" loading="lazy"><span class="tag">Math</span><span class="tag new">New</span></div>
+      <div class="body">
+        <h2>MathMan</h2>
+        <p>Race through the maze and grab a glowing ? orb. Solve the problem to power up, then chase down the Glitches. Pick addition, subtraction, times tables, division or a mix.</p>
+        <div class="meta"><span>+ &minus; &times; &divide;</span><span>Ages 6+</span><span>Keyboard or touch</span></div>
+        <span class="play">&#9654; Play</span>
+      </div>
+    </a>
     <a class="card" href="math-blaster.html">
-      <div class="icon">🔢</div>
-      <div class="title">Math Blaster</div>
-      <div class="desc">Arcade-style math facts game. Solve equations before time runs out!</div>
-      <span class="play-btn">▶ Play</span>
+      <div class="thumb"><img src="docs/screenshots/math-blaster.png" alt="Math Blaster: answer blocks falling through space" loading="lazy"><span class="tag">Math</span></div>
+      <div class="body">
+        <h2>Math Blaster</h2>
+        <p>A problem appears at the top and answer blocks fall through space. Type the right answer and press Enter to blast the matching block. Seven modes from easy addition to mixed practice.</p>
+        <div class="meta"><span>Math facts</span><span>Ages 6+</span><span>Keyboard</span></div>
+        <span class="play">&#9654; Play</span>
+      </div>
     </a>
     <a class="card" href="spelling-bee.html">
-      <div class="icon">🐝</div>
-      <div class="title">Spelling Bee</div>
-      <div class="desc">Listen, type, and master your spelling skills. Fun for all ages!</div>
-      <span class="play-btn">▶ Play</span>
+      <div class="thumb"><img src="docs/screenshots/spelling-bee.png" alt="Spelling Bee: memorize the word, then type it" loading="lazy"><span class="tag">Spelling</span></div>
+      <div class="body">
+        <h2>Spelling Bee</h2>
+        <p>Five ways to practice spelling: see it, hear it, solve definition clues, beat the clock, or rescue jumbled words.</p>
+        <div class="meta"><span>Spelling</span><span>Ages 7+</span><span>Keyboard</span></div>
+        <span class="play">&#9654; Play</span>
+      </div>
     </a>
     <a class="card" href="geoquest.html">
-      <div class="icon">🌍</div>
-      <div class="title">GeoQuest</div>
-      <div class="desc">Geography quizzes — explore continents, capitals, flags, and more!</div>
-      <span class="play-btn">▶ Play</span>
+      <div class="thumb"><img src="docs/screenshots/geoquest.png" alt="GeoQuest: a world map with a question to click on a country" loading="lazy"><span class="tag">Geography</span></div>
+      <div class="body">
+        <h2>GeoQuest</h2>
+        <p>Find places on a world map: countries, capitals, famous landmarks and flags, then try the World Marathon. Labels on Easy, no labels on Hard.</p>
+        <div class="meta"><span>Geography</span><span>Ages 8+</span><span>Keyboard</span></div>
+        <span class="play">&#9654; Play</span>
+      </div>
     </a>
-    <a class="card" href="mario-typing.html">
-      <div class="icon">🍄</div>
-      <div class="title">Mario Typing Game</div>
-      <div class="desc">Type your way through a Mario-inspired typing adventure!</div>
-      <span class="play-btn">▶ Play</span>
-    </a>
-    <a class="card" href="atlantic-crossing.html">
-      <div class="icon">⛵</div>
-      <div class="title">Atlantic Crossing</div>
-      <div class="desc">Historical simulation game — cross the Atlantic like the early settlers.</div>
-      <span class="play-btn">▶ Play</span>
-    </a>
-  </div>
+  </section>
+
+  <footer>
+    Made by Zaarno. Every game is a single HTML file with no tracking and no third-party scripts.
+    Open source under the MIT license: <a href="https://github.com/Zaarnno-Dev-Hub-dot/zaarno-arcade-games">view the code on GitHub</a>.
+  </footer>
+</main>
 </body>
 </html>

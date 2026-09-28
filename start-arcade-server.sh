@@ -1,5 +1,5 @@
 #!/bin/bash
-# Simple persistent launcher for the My Projects / Arcade games server
+# Serve the Learning Arcade locally, then open http://localhost:8000
 cd "$(dirname "$0")"
-echo "Starting Arcade games server on http://localhost:8002 ..."
-python3 -m http.server 8002 --bind 127.0.0.1
+echo "Learning Arcade running at http://localhost:8000 (Ctrl+C to stop)"
+python3 -m http.server 8000 --bind 127.0.0.1
