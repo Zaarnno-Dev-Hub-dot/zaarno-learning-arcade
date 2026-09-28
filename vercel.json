@@ -1,4 +1,11 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/mario-typing", "destination": "/plumber-typing", "permanent": true },
+    { "source": "/mario-typing.html", "destination": "/plumber-typing", "permanent": true },
+    { "source": "/atlantic-crossing(.html)?", "destination": "/", "permanent": false },
+    { "source": "/classic-gamezone(.html)?", "destination": "/", "permanent": false },
+    { "source": "/arena(.html)?", "destination": "/", "permanent": false }
+  ]
 }
