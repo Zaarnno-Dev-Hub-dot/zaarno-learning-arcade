@@ -12,8 +12,8 @@ No sign-up, no ads, no tracking. Every game runs in any modern browser, and the 
 | [Plumber Typing](plumber-typing.html) **(new)** | Touch typing, one keyboard row at a time | 7+ | Keyboard |
 | [MathMan](mathman.html) **(new)** | + &minus; &times; &divide; facts inside a maze-chase game | 6+ | Keyboard, swipe or D-pad |
 | [Math Quest Runner](https://github.com/Zaarnno-Dev-Hub-dot/math-quest-runner) **(new)** | Math facts and fractions in a jungle platformer, grades 1-5 (lives in its own repository) | 6+ | Keyboard or touch |
-| [Math Blaster](math-blaster.html) | Quick arithmetic with falling answer blocks | 6+ | Keyboard |
-| [Spelling Bee](spelling-bee.html) | Spelling: see it, hear it, clues, speed rounds, jumbles | 7+ | Keyboard |
+| [Math Blaster](math-blaster.html) | Quick arithmetic with falling answer blocks | 6+ | Keyboard, mouse or touch |
+| [Spelling Bee](spelling-bee.html) | Spelling: see it, hear it, clues, speed rounds, jumbles | 7+ | Keyboard or on-screen keyboard |
 | [GeoQuest](geoquest.html) | Countries, capitals, landmarks and flags on a world map | 8+ | Mouse or touch, plus keyboard |
 
 ### Plumber Typing
@@ -47,11 +47,18 @@ for a math problem:
 
 ![MathMan in power mode](docs/screenshots/mathman.png)
 
+### Progress page and parent/teacher guide
+
+- [My Progress](progress.html) shows stars and best scores from every game in one place, read from what each game saves on this device. Math Quest Runner lives on a different website, so its stars stay there.
+- [For parents and teachers](teachers.html) has an ages / grades / what-it-teaches table and prints as a single page.
+
 ### Math Blaster, Spelling Bee and GeoQuest
 
 | Math Blaster | Spelling Bee | GeoQuest |
 |---|---|---|
 | ![Math Blaster](docs/screenshots/math-blaster.png) | ![Spelling Bee](docs/screenshots/spelling-bee.png) | ![GeoQuest](docs/screenshots/geoquest.png) |
+
+Math Blaster and Spelling Bee have a sound button, saved best scores per mode, and touch support (tap a falling block; an on-screen keyboard appears on touch screens). Math Blaster's wrong answers are close to the right one, and Spelling Bee shows the correct spelling after a miss.
 
 ## Play locally
 
@@ -66,7 +73,7 @@ Then open http://localhost:8000. You can also double-click any `.html` file to o
 ## Privacy
 
 The games make no network requests and use no accounts, cookies, analytics or third-party scripts.
-Scores and progress are stored only in your browser's `localStorage`.
+Scores and progress are stored only in your browser's `localStorage`. The progress page reads these keys: `plumberTyping.v1`, `mathman.v1`, `mathBlaster.v1`, `spellingBee.v1` and `gq_highScore` (plus the older `mb_highScore` and `sb_highScore`).
 
 ## For developers
 

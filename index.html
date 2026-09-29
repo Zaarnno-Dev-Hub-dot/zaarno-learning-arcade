@@ -14,7 +14,8 @@ h1 { font-size:clamp(2.3rem, 7vw, 3.8rem); font-weight:900; line-height:1; lette
 h1 span { color:var(--teal); text-shadow:0 .06em 0 #0f6f65, 0 .12em 0 rgba(0,0,0,.35); }
 .lede { color:var(--muted); margin-top:.8rem; font-size:1.08rem; line-height:1.5; max-width:42rem; }
 .pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1rem; }
-.pills span { font-size:.8rem; font-weight:700; background:#1a2750; border:1px solid var(--line); padding:.3rem .75rem; border-radius:999px; }
+.pills span, .pill-link { font-size:.8rem; font-weight:700; background:#1a2750; border:1px solid var(--line); padding:.3rem .75rem; border-radius:999px; }
+.pill-link { color:var(--gold); text-decoration:none; border-color:#4a5a1c; } .pill-link:hover, .pill-link:focus-visible { border-color:var(--gold); outline:none; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap:18px; margin-top:34px; }
 .card { display:flex; flex-direction:column; background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; text-decoration:none; color:inherit; transition:transform .15s, border-color .15s, box-shadow .15s; }
 .card:hover, .card:focus-visible { transform:translateY(-3px); border-color:var(--gold); box-shadow:0 14px 32px rgba(0,0,0,.4); outline:none; }
@@ -39,7 +40,7 @@ footer a { color:var(--teal); }
   <header>
     <h1>LEARNING <span>ARCADE</span></h1>
     <p class="lede">Free browser games that turn practice into play: typing, math, spelling and geography. No sign-up, no ads, no tracking. Progress is saved on your device.</p>
-    <div class="pills"><span>Ages 6-12</span><span>Runs in any modern browser</span><span>Works offline</span></div>
+    <div class="pills"><span>Ages 6-12</span><span>Runs in any modern browser</span><span>Works offline</span><a class="pill-link" href="progress.html">&#9733; My Progress</a><a class="pill-link" href="teachers.html">For parents &amp; teachers</a></div>
   </header>
 
   <section class="grid" aria-label="Games">
@@ -65,7 +66,7 @@ footer a { color:var(--teal); }
       <div class="thumb"><img src="docs/screenshots/math-quest-runner.png" alt="Math Quest Runner: a jungle platformer with a star coin and a gremlin frog"><span class="tag">Math</span><span class="tag new">New</span></div>
       <div class="body">
         <h2>Math Quest Runner</h2>
-        <p>A jungle platformer where every star coin and gremlin asks a math question. Pick grade 1 to 5, then run, jump and stomp through three levels.</p>
+        <p>A jungle platformer where every star coin and gremlin asks a math question. Pick grade 1 to 5, then run, jump and stomp through three levels with music and moving platforms. A wrong answer shows you why.</p>
         <div class="meta"><span>Grades 1-5</span><span>Ages 6-11</span><span>Keyboard or touch</span></div>
         <span class="play">&#9654; Play</span>
       </div>
@@ -73,8 +74,8 @@ footer a { color:var(--teal); }
       <div class="thumb"><img src="docs/screenshots/math-blaster.png" alt="Math Blaster: answer blocks falling through space"><span class="tag">Math</span></div>
       <div class="body">
         <h2>Math Blaster</h2>
-        <p>A problem appears at the top and answer blocks fall through space. Type the right answer and press Enter to blast the matching block. Seven modes from easy addition to mixed practice.</p>
-        <div class="meta"><span>Math facts</span><span>Ages 6+</span><span>Keyboard</span></div>
+        <p>A problem appears at the top and answer blocks fall through space. Tap the right block (or type the answer and press Enter) to blast it. The wrong blocks are close to the right answer, so think it through. Seven modes from easy addition to mixed practice.</p>
+        <div class="meta"><span>Math facts</span><span>Ages 6+</span><span>Keyboard or touch</span></div>
         <span class="play">&#9654; Play</span>
       </div>
     </a>
@@ -82,8 +83,8 @@ footer a { color:var(--teal); }
       <div class="thumb"><img src="docs/screenshots/spelling-bee.png" alt="Spelling Bee: memorize the word, then type it"><span class="tag">Spelling</span></div>
       <div class="body">
         <h2>Spelling Bee</h2>
-        <p>Five ways to practice spelling: see it, hear it, solve definition clues, beat the clock, or rescue jumbled words.</p>
-        <div class="meta"><span>Spelling</span><span>Ages 7+</span><span>Keyboard</span></div>
+        <p>Five ways to practice spelling: see it, hear it, solve definition clues, beat the clock, or rescue jumbled words. Miss a word and you see how it is spelled.</p>
+        <div class="meta"><span>Spelling</span><span>Ages 7+</span><span>Keyboard or touch</span></div>
         <span class="play">&#9654; Play</span>
       </div>
     </a>
@@ -99,7 +100,7 @@ footer a { color:var(--teal); }
   </section>
 
   <footer>
-    Made by Zaarno. No game uses tracking or third-party scripts.
+    Made by Zaarno. No game uses tracking or third-party scripts. <a href="progress.html">See your progress</a> &middot; <a href="teachers.html">Guide for parents and teachers</a>.
     Open source under the MIT license: <a href="https://github.com/Zaarnno-Dev-Hub-dot/zaarno-learning-arcade">view the code on GitHub</a>.
   </footer>
 </main>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Progress - Learning Arcade</title>
+<meta name="description" content="Stars and best scores from every Learning Arcade game, saved on this device.">
+<style>
+:root { --bg:#0b1224; --card:#131d38; --ink:#f4f1e8; --muted:#a3b1c9; --gold:#ffd54f; --teal:#27c2b0; --line:#22305a; --chip:#1a2750; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:radial-gradient(1200px 600px at 15% -10%, #1d2d5c 0%, transparent 60%), var(--bg); color:var(--ink); font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif; min-height:100vh; }
+main { max-width:1000px; margin:0 auto; padding:28px 16px 56px; }
+a { color:var(--teal); }
+.back { display:inline-block; font-weight:700; font-size:.9rem; text-decoration:none; background:var(--chip); border:1px solid var(--line); padding:.35rem .9rem; border-radius:999px; color:var(--ink); }
+h1 { font-size:clamp(2rem, 6vw, 3rem); font-weight:900; color:var(--gold); margin-top:1rem; text-shadow:0 .06em 0 #a86b00; }
+.lede { color:var(--muted); margin-top:.6rem; line-height:1.5; max-width:40rem; }
+.summary { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:22px; }
+.tile { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+.tile b { display:block; font-size:1.9rem; color:var(--gold); line-height:1.1; }
+.tile span { color:var(--muted); font-size:.85rem; }
+.games { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap:16px; margin-top:22px; }
+.game { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 18px 18px; }
+.game h2 { font-size:1.25rem; display:flex; align-items:center; gap:.5rem; }
+.game h2 small { margin-left:auto; font-size:.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.big { font-size:1.6rem; font-weight:900; color:var(--gold); margin:.5rem 0 .1rem; }
+.big small { font-size:.85rem; color:var(--muted); font-weight:700; }
+.facts { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; }
+.facts span, .chip { font-size:.78rem; font-weight:700; background:var(--chip); padding:.22rem .55rem; border-radius:6px; color:#dfe7f2; }
+.world { display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; margin-top:.5rem; }
+.world em { font-style:normal; font-size:.78rem; color:var(--muted); min-width:7.5rem; }
+.star { color:var(--gold); letter-spacing:.05em; } .star i { font-style:normal; color:rgba(255,255,255,.2); }
+table { width:100%; border-collapse:collapse; margin-top:.6rem; font-size:.88rem; }
+td, th { text-align:left; padding:.25rem .3rem; border-bottom:1px solid var(--line); }
+td:last-child, th:last-child { text-align:right; font-weight:800; color:var(--gold); }
+.empty { color:var(--muted); font-size:.92rem; margin-top:.6rem; line-height:1.5; }
+.play { display:inline-block; margin-top:.8rem; background:var(--gold); color:#2b1a00; font-weight:900; padding:.4rem 1.1rem; border-radius:999px; text-decoration:none; box-shadow:0 .16rem 0 #a86b00; }
+.note { margin-top:26px; color:var(--muted); font-size:.85rem; line-height:1.6; }
+.danger { margin-top:14px; font:inherit; font-size:.85rem; font-weight:700; color:#ffb4b4; background:transparent; border:1px solid #6b2a35; border-radius:999px; padding:.4rem 1rem; cursor:pointer; }
+.danger:hover { background:#3a1620; }
+@media print { body { background:#fff; color:#000; } .tile, .game { background:#fff; border-color:#999; } .tile b, .big, .star, td:last-child, th:last-child { color:#000; } .back, .play, .danger { display:none; } .facts span, .chip { background:#eee; color:#000; } a { color:#000; } }
+</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b1224%22/%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22%2327c2b0%22/%3E%3Ccircle cx=%2240%22 cy=%2244%22 r=%226%22 fill=%22%23fff%22/%3E%3Ccircle cx=%2260%22 cy=%2244%22 r=%226%22 fill=%22%23fff%22/%3E%3C/svg%3E">
+</head>
+<body>
+<main>
+  <a class="back" href="index.html">&larr; Arcade</a>
+  <h1>My Progress</h1>
+  <p class="lede">Stars and best scores from every game. Everything is saved on this device only. Nothing is sent anywhere, and there are no accounts.</p>
+  <section class="summary" id="summary" aria-label="Totals"></section>
+  <section class="games" id="games" aria-label="Games"></section>
+  <p class="note" id="note"></p>
+  <button class="danger" id="reset" type="button">Clear progress for the games on this page</button>
+</main>
+<script>
+(function () {
+  'use strict';
+  // Every game keeps its own record in localStorage on this origin. Missing or damaged data is treated as "not played yet".
+  const KEYS = ['plumberTyping.v1', 'mathman.v1', 'mathBlaster.v1', 'mb_highScore', 'spellingBee.v1', 'sb_highScore', 'gq_highScore'];
+  function read(key) { try { const raw = localStorage.getItem(key); return raw == null ? null : JSON.parse(raw); } catch (e) { return null; } }
+  const num = (v) => (typeof v === 'number' && isFinite(v) && v > 0 ? v : 0);
+  const fmt = (n) => Number(n).toLocaleString('en-US');
+  const $ = (id) => document.getElementById(id);
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function stars(n, of) { const s = el('span', 'star'); s.appendChild(document.createTextNode('\u2605'.repeat(n))); const i = el('i', null, '\u2605'.repeat(of - n)); s.appendChild(i); return s; }
+
+  const DIFF = ['Easy', 'Medium', 'Hard', 'Expert'];
+  function bestTable(rows, head) {
+    const t = el('table'), h = el('tr'); h.appendChild(el('th', null, head)); h.appendChild(el('th', null, 'Best')); t.appendChild(h);
+    rows.forEach(([label, score]) => { const r = el('tr'); r.appendChild(el('td', null, label)); r.appendChild(el('td', null, fmt(score))); t.appendChild(r); });
+    return t;
+  }
+  function card(title, tag, href, playLabel) {
+    const c = el('article', 'game'), h = el('h2', null, title); h.appendChild(el('small', null, tag)); c.appendChild(h);
+    c.finish = (played) => { if (!played) { c.appendChild(el('p', 'empty', 'Nothing here yet. Play a round and your best shows up on this page.')); } const a = el('a', 'play', played ? playLabel : 'Play'); a.href = href; if (href.indexOf('http') === 0) a.rel = 'noopener'; c.appendChild(a); return c; };
+    return c;
+  }
+
+  const games = [], totals = { stars: 0, starsMax: 0, played: 0, best: 0 };
+
+  // ---- Plumber Typing: real stars, 12 levels in 4 worlds
+  (function () {
+    const s = read('plumberTyping.v1') || {}, lv = (s.levels && typeof s.levels === 'object') ? s.levels : {};
+    const worlds = ['Kitchen Sink', 'Bathroom Pipes', 'Basement Boiler', 'Sewer Depths'];
+    let total = 0, cleared = 0, bestWpm = 0, bestAcc = 0;
+    const c = card('Plumber Typing', 'Typing', 'plumber-typing.html', 'Keep playing');
+    worlds.forEach((w, wi) => {
+      const row = el('div', 'world'); row.appendChild(el('em', null, w));
+      for (let i = 1; i <= 3; i++) { const r = lv[(wi + 1) + '-' + i], n = r ? Math.max(0, Math.min(3, num(r.stars))) : 0; total += n; if (n > 0) cleared++; if (r) { bestWpm = Math.max(bestWpm, num(r.wpm)); bestAcc = Math.max(bestAcc, num(r.acc)); } row.appendChild(stars(n, 3)); if (i < 3) row.appendChild(document.createTextNode(' ')); }
+      c.appendChild(row);
+    });
+    const big = el('div', 'big', total + ' / 36 '); big.appendChild(el('small', null, 'stars')); c.insertBefore(big, c.children[1]);
+    if (cleared) { const f = el('div', 'facts'); f.appendChild(el('span', null, cleared + ' of 12 levels cleared')); if (bestWpm) f.appendChild(el('span', null, 'Best speed ' + bestWpm + ' words/min')); if (bestAcc) f.appendChild(el('span', null, 'Best accuracy ' + bestAcc + '%')); c.appendChild(f); }
+    totals.stars += total; totals.starsMax += 36; if (cleared) totals.played++;
+    games.push(c.finish(cleared > 0));
+  })();
+
+  // ---- MathMan: best score per operation and level
+  (function () {
+    const s = read('mathman.v1') || {}, best = (s.best && typeof s.best === 'object') ? s.best : {};
+    const OPS = { add: 'Addition', sub: 'Subtraction', mul: 'Multiplication', div: 'Division', mix: 'Mixed' }, LV = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+    const rows = []; let top = 0;
+    Object.keys(OPS).forEach((op) => Object.keys(LV).forEach((lv) => { const v = num(best[op + '-' + lv]); if (v) { rows.push([OPS[op] + ' \u00b7 ' + LV[lv], v]); top = Math.max(top, v); } }));
+    const c = card('MathMan', 'Math', 'mathman.html', 'Keep playing');
+    if (rows.length) { const big = el('div', 'big', fmt(top) + ' '); big.appendChild(el('small', null, 'best score')); c.appendChild(big); c.appendChild(bestTable(rows, 'Mode')); totals.played++; }
+    games.push(c.finish(rows.length > 0));
+  })();
+
+  // ---- Math Blaster and Spelling Bee share a record shape
+  function scored(title, tag, href, key, legacyKey, modeNames, statLabels) {
+    const s = read(key) || {}, best = (s.best && typeof s.best === 'object') ? s.best : {}, st = (s.stats && typeof s.stats === 'object') ? s.stats : {};
+    const legacy = num(read(legacyKey));
+    const overall = Math.max(num(s.bestOverall), legacy);
+    const rows = [];
+    Object.keys(best).forEach((k) => { const m = k.split('-'), v = num(best[k]); if (v && modeNames[Number(m[0])] != null) rows.push([modeNames[Number(m[0])] + ' \u00b7 ' + (DIFF[Number(m[1])] || ''), v, Number(m[0]) * 10 + Number(m[1])]); });
+    rows.sort((a, b) => a[2] - b[2]);
+    const c = card(title, tag, href, 'Keep playing');
+    if (overall) {
+      const big = el('div', 'big', fmt(overall) + ' '); big.appendChild(el('small', null, 'high score')); c.appendChild(big);
+      const games_ = num(st.games), tried = num(st[statLabels.tried]), right = num(st[statLabels.right]);
+      const f = el('div', 'facts'); if (games_) f.appendChild(el('span', null, games_ + ' game' + (games_ === 1 ? '' : 's') + ' played')); if (tried) f.appendChild(el('span', null, right + ' of ' + tried + ' ' + statLabels.noun + ' right (' + Math.round(right / tried * 100) + '%)')); if (f.children.length) c.appendChild(f);
+      if (rows.length) c.appendChild(bestTable(rows.map((r) => [r[0], r[1]]), 'Mode'));
+      totals.played++; totals.best = Math.max(totals.best, 0);
+    }
+    return c.finish(overall > 0);
+  }
+  games.push(scored('Math Blaster', 'Math', 'math-blaster.html', 'mathBlaster.v1', 'mb_highScore', ['Addition Easy', 'Addition Medium', 'Subtraction Easy', 'Subtraction Medium', 'Multiplication', 'Division', 'Mixed'], { tried: 'answered', right: 'correct', noun: 'answers' }));
+  games.push(scored('Spelling Bee', 'Spelling', 'spelling-bee.html', 'spellingBee.v1', 'sb_highScore', ['See & Spell', 'Hear & Spell', 'Definition Clues', 'Speed Spell', 'Jumble Rescue'], { tried: 'words', right: 'correct', noun: 'words' }));
+
+  // ---- GeoQuest: a single high score
+  (function () {
+    const v = num(read('gq_highScore')), c = card('GeoQuest', 'Geography', 'geoquest.html', 'Keep playing');
+    if (v) { const big = el('div', 'big', fmt(v) + ' '); big.appendChild(el('small', null, 'high score')); c.appendChild(big); totals.played++; }
+    games.push(c.finish(v > 0));
+  })();
+
+  // ---- Math Quest Runner lives on its own website, so this page cannot read its stars
+  (function () {
+    const c = card('Math Quest Runner', 'Math', 'https://zaarnno-dev-hub-dot.github.io/math-quest-runner/', 'Open the game');
+    c.appendChild(el('p', 'empty', 'This game is hosted on a different website, so its stars and best times are kept there. Open it to see the stars for each grade on the grade buttons.'));
+    const a = el('a', 'play', 'Open the game'); a.href = 'https://zaarnno-dev-hub-dot.github.io/math-quest-runner/'; a.rel = 'noopener'; c.appendChild(a);
+    games.push(c);
+  })();
+
+  // ---- Summary tiles
+  const sum = $('summary');
+  [[totals.played + ' / 5', 'games played on this device'], [totals.stars + ' / ' + totals.starsMax, 'Plumber Typing stars']].forEach(([b, s]) => { const t = el('div', 'tile'); t.appendChild(el('b', null, b)); t.appendChild(el('span', null, s)); sum.appendChild(t); });
+  games.forEach((g) => $('games').appendChild(g));
+  $('note').textContent = 'Tip: this page also prints nicely if you want to show a teacher or parent. Progress is stored in this browser, so a different browser or device starts fresh.';
+
+  $('reset').addEventListener('click', () => {
+    if (!window.confirm('Clear the saved stars and scores for these games on this device? This cannot be undone.')) return;
+    KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* blocked */ } });
+    location.reload();
+  });
+})();
+</script>
+</body>
+</html>
