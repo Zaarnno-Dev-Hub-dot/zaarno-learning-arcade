@@ -1,7 +1,7 @@
 # Learning Arcade
 
 Free browser games that turn practice into play: touch typing, math facts, spelling and geography.
-No sign-up, no ads, no tracking. Every game is a single HTML file that runs in any modern browser, even offline.
+No sign-up, no ads, no tracking. Every game runs in any modern browser, and the ones in this repo are a single HTML file each.
 
 ![The Learning Arcade hub](docs/screenshots/hub.png)
 
@@ -11,6 +11,7 @@ No sign-up, no ads, no tracking. Every game is a single HTML file that runs in a
 |---|---|---|---|
 | [Plumber Typing](plumber-typing.html) **(new)** | Touch typing, one keyboard row at a time | 7+ | Keyboard |
 | [MathMan](mathman.html) **(new)** | + &minus; &times; &divide; facts inside a maze-chase game | 6+ | Keyboard, swipe or D-pad |
+| [Math Quest Runner](https://github.com/Zaarnno-Dev-Hub-dot/math-quest-runner) **(new)** | Math facts and fractions in a jungle platformer, grades 1-5 (lives in its own repository) | 6+ | Keyboard or touch |
 | [Math Blaster](math-blaster.html) | Quick arithmetic with falling answer blocks | 6+ | Keyboard |
 | [Spelling Bee](spelling-bee.html) | Spelling: see it, hear it, clues, speed rounds, jumbles | 7+ | Keyboard |
 | [GeoQuest](geoquest.html) | Countries, capitals, landmarks and flags on a world map | 8+ | Mouse or touch, plus keyboard |
