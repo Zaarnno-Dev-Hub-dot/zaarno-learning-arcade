@@ -8,12 +8,16 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000}
 #gameContainer{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
-canvas{background:#0a0a2e;display:block;max-width:100vw;max-height:100vh;object-fit:contain;image-rendering:pixelated;cursor:default}
+canvas{background:#0a0a2e;display:block;max-width:100vw;max-height:100vh;object-fit:contain;image-rendering:pixelated;cursor:default;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
+#rot{display:none;position:fixed;inset:0;z-index:2000;background:rgba(10,10,46,.96);color:#fff;font:600 20px/1.4 'Trebuchet MS',system-ui,sans-serif;text-align:center;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px}
+#rot button{font:700 16px 'Trebuchet MS',system-ui,sans-serif;padding:10px 20px;border:0;border-radius:999px;background:#ffcc00;color:#0a0a2e;cursor:pointer}
+@media (orientation:portrait) and (max-width:700px){#rot:not(.off){display:flex}}
 </style>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b1224%22/%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22%2327c2b0%22/%3E%3Ccircle cx=%2240%22 cy=%2244%22 r=%226%22 fill=%22%23fff%22/%3E%3Ccircle cx=%2260%22 cy=%2244%22 r=%226%22 fill=%22%23fff%22/%3E%3C/svg%3E">
 </head>
 <body>
 <a href="index.html" style="position:fixed;bottom:10px;left:10px;z-index:1000;font:700 14px 'Trebuchet MS',system-ui,sans-serif;color:#fff;background:rgba(10,16,28,.75);padding:6px 12px;border-radius:999px;text-decoration:none">&larr; Arcade</a>
+<div id="rot"><div>Turn your phone sideways<br>for the best view.</div><button id="rotOk" type="button">Play anyway</button></div>
 <div id="gameContainer"><canvas id="gc" width="960" height="640"></canvas></div>
 <script>
 (function(){
@@ -22,11 +26,32 @@ canvas{background:#0a0a2e;display:block;max-width:100vw;max-height:100vh;object-
 const canvas=document.getElementById('gc');
 const ctx=canvas.getContext('2d');
 const W=960,H=640;
+document.getElementById('rotOk').addEventListener('click',()=>document.getElementById('rot').classList.add('off'));
+
+// ---- SAVED PROGRESS ----
+// mathBlaster.v1 = { best: { 'mode-difficulty': score }, bestOverall, stats: { games, answered, correct }, settings: { mode, difficulty, sound } }
+const SAVE_KEY='mathBlaster.v1';
+function loadSave(){
+ let s=null;
+ try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){}
+ if(!s||typeof s!=='object')s={};
+ s.best=(s.best&&typeof s.best==='object')?s.best:{};
+ s.stats=Object.assign({games:0,answered:0,correct:0},s.stats);
+ s.settings=Object.assign({mode:0,difficulty:0,sound:true},s.settings);
+ let legacy=0;
+ try{legacy=parseInt(localStorage.getItem('mb_highScore'))||0;}catch(e){}
+ s.bestOverall=Math.max(Number(s.bestOverall)||0,legacy);
+ return s;
+}
+function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catch(e){}}
+const save=loadSave();
+let soundOn=save.settings.sound!==false;
 
 // ---- AUDIO ----
 let audioCtx=null;
 function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
 function playTone(freq,dur,type,vol){
+ if(!soundOn)return;
  try{
   initAudio();
   const o=audioCtx.createOscillator();
@@ -45,19 +70,48 @@ function playLevelUp(){[523,587,659,698,784].forEach((f,i)=>setTimeout(()=>playT
 function playGameOver(){playTone(300,0.3,'sawtooth',0.25);setTimeout(()=>playTone(220,0.4,'sawtooth',0.25),300);setTimeout(()=>playTone(150,0.6,'sawtooth',0.2),600);}
 function playShoot(){playTone(800,0.08,'square',0.1);}
 function playExplode(){playTone(150,0.2,'sawtooth',0.15);}
+function toggleSound(){soundOn=!soundOn;save.settings.sound=soundOn;persist();if(soundOn)playTone(660,0.1,'sine',0.2);}
 
 // ---- INPUT ----
 const keys={},mouse={x:0,y:0,clicked:false};
-document.addEventListener('keydown',e=>{if(!keys[e.key]||keys[e.key]===0)keys[e.key]=2;e.preventDefault();});
-document.addEventListener('keyup',e=>{keys[e.key]=0;e.preventDefault();});
-canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mouse.x=(e.clientX-r.left)*(W/r.width);mouse.y=(e.clientY-r.top)*(H/r.height);});
-canvas.addEventListener('mousedown',e=>{mouse.clicked=true;initAudio();});
-canvas.addEventListener('mouseup',()=>{mouse.clicked=false;});
+document.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ if(!keys[e.key]||keys[e.key]===0)keys[e.key]=2;
+ e.preventDefault();
+});
+document.addEventListener('keyup',e=>{keys[e.key]=0;});
+// Pointer events cover mouse, touch and pen with one code path.
+canvas.addEventListener('pointerdown',e=>{
+ e.preventDefault();
+ const r=canvas.getBoundingClientRect();
+ mouse.x=(e.clientX-r.left)*(W/r.width);mouse.y=(e.clientY-r.top)*(H/r.height);
+ mouse.clicked=true;initAudio();
+});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing'){state='paused';}});
 
 function justPressed(k){return keys[k]===2;}
-function consumeJustPressed(k){if(keys[k]===2){keys[k]=1;return true;}return false;}
 
+// Buttons are rebuilt every frame while drawing, so clicks always match what is on screen.
+let uiButtons=[];
+function drawButton(label,x,y,w,h,fn,opts){
+ opts=opts||{};
+ uiButtons.push({x,y,w,h,fn});
+ ctx.fillStyle=opts.fill||'rgba(0,240,255,0.15)';
+ ctx.strokeStyle=opts.stroke||'#00f0ff';ctx.lineWidth=2;
+ ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();ctx.stroke();
+ ctx.fillStyle=opts.color||'#ffffff';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.font=opts.font||'bold 20px sans-serif';
+ ctx.fillText(label,x+w/2,y+h/2+1);
+ ctx.textBaseline='alphabetic';
+}
+function handleButtonClick(){
+ if(!mouse.clicked)return false;
+ for(let i=uiButtons.length-1;i>=0;i--){
+  const b=uiButtons[i];
+  if(mouse.x>=b.x&&mouse.x<=b.x+b.w&&mouse.y>=b.y&&mouse.y<=b.y+b.h){mouse.clicked=false;b.fn();return true;}
+ }
+ return false;
+}
 // ---- PARTICLES ----
 let particles=[];
 function spawnParticles(x,y,count,color,speed){
@@ -83,92 +137,118 @@ function updateParticles(dt){
 
 // ---- GAME STATE ----
 let state='title'; // title, playing, paused, gameover
-let score=0,highScore=parseInt(localStorage.getItem('mb_highScore'))||0;
+let score=0,highScore=save.bestOverall,newBest=false,modeBest=0;
 let lives=3,combo=0,maxCombo=0,level=1,correctCount=0,problemsAnswered=0,correctAnswered=0;
-let mode=0; // 0=add_easy,1=add_med,2=sub_easy,3=sub_med,4=mult,5=div,6=mixed
-let modeNames=['Addition Easy','Addition Medium','Subtraction Easy','Subtraction Medium','Multiplication','Division','Mixed Hard'];
-let difficulty=0; // 0=easy,1=medium,2=hard
-let diffNames=['Easy','Medium','Hard'];
+let mode=save.settings.mode; // 0=add_easy,1=add_med,2=sub_easy,3=sub_med,4=mult,5=div,6=mixed
+const modeNames=['Addition Easy','Addition Medium','Subtraction Easy','Subtraction Medium','Multiplication','Division','Mixed Hard'];
+let difficulty=save.settings.difficulty; // 0=easy,1=medium,2=hard
+const diffNames=['Easy','Medium','Hard'];
+if(!(mode>=0&&mode<7))mode=0;
+if(!(difficulty>=0&&difficulty<3))difficulty=0;
 let answerBuffer='',currentProblem=null;
-let fallSpeed=60,spawnTimer=0,spawnInterval=2.5,spawnElapsed=0;
-let blocks=[],lasers=[],explosions=[];
+let fallSpeed=60;
+let blocks=[],lasers=[];
 let screenShake=0,shakeIntensity=0;
 let flashTimer=0,flashColor='';
 let starField=[];
 
+function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+
+// Wrong answers that look like real mistakes: off by one or two, a slipped ten, the wrong operation,
+// a neighbouring multiplication fact, swapped digits. All unique, never negative, never the answer.
+function makeChoices(op,a,b,ans){
+ const seen=new Set([ans]);
+ const cap=Math.max(12,Math.round(ans*0.3));   // keep every wrong answer believable
+ const near=[],slip=[];
+ const add=(list,v,limit)=>{
+  if(Number.isInteger(v)&&v>=0&&!seen.has(v)&&Math.abs(v-ans)<=(limit||cap)){seen.add(v);list.push(v);}
+ };
+ add(near,ans+1,2);add(near,ans-1,2);add(near,ans+2,2);add(near,ans-2,2);
+ if(ans>=10){add(slip,ans+10);add(slip,ans-10);}
+ if(ans>=10&&ans<100)add(slip,parseInt(String(ans).split('').reverse().join(''),10));
+ if(op==='+'){add(slip,Math.abs(a-b));}
+ else if(op==='-'){add(slip,a+b);add(slip,b-a);}
+ else if(op==='*'){add(slip,a+b);add(slip,(a+1)*b);add(slip,(a-1)*b);add(slip,a*(b+1));add(slip,a*(b-1));}
+ else if(op==='/'){add(slip,b);add(slip,a-b);}
+ shuffle(near);shuffle(slip);
+ const picks=[];
+ // One small slip and one "real mistake" first when both exist, then fill from whatever is left.
+ if(near.length)picks.push(near.shift());
+ if(slip.length)picks.push(slip.shift());
+ const rest=shuffle(near.concat(slip));
+ while(picks.length<3&&rest.length)picks.push(rest.shift());
+ // Tiny answers (like 1 + 1) can run out of mistakes; widen a little.
+ for(let d=3;picks.length<3;d++){
+  for(const v of [ans+d,ans-d]){if(picks.length<3&&v>=0&&!picks.includes(v)&&v!==ans)picks.push(v);}
+ }
+ return shuffle(picks.concat([ans]));
+}
 // Problem generation
 function genProblem(){
- const ops=[];
- if(mode===0)ops.push('+');
- else if(mode===1)ops.push('+');
- else if(mode===2)ops.push('-');
- else if(mode===3)ops.push('-');
- else if(mode===4)ops.push('*');
- else if(mode===5)ops.push('/');
- else ops.push(['+','-','*','/'][Math.floor(Math.random()*4)]);
+ let op;
+ if(mode===0||mode===1)op='+';
+ else if(mode===2||mode===3)op='-';
+ else if(mode===4)op='*';
+ else if(mode===5)op='/';
+ else op=['+','-','*','/'][Math.floor(Math.random()*4)];
 
- const op=ops[0];let a,b,ans;
+ let a,b,ans;
  const d=difficulty;
- if(mode===0||mode===2||mode===6){
-  if(mode===0&&d===0){a=rand(1,9);b=rand(1,9);ans=a+b;}
-  else if(mode===0&&d===1){a=rand(10,50);b=rand(1,50);ans=a+b;}
-  else if(mode===0&&d===2){a=rand(50,150);b=rand(50,150);ans=a+b;}
-  else if(mode===2&&d===0){a=rand(2,9);b=rand(1,a-1);ans=a-b;}
-  else if(mode===2&&d===1){a=rand(20,99);b=rand(10,20);ans=a-b;}
-  else if(mode===2&&d===2){a=rand(50,200);b=rand(20,100);ans=a-b;}
-  else{a=rand(10,50);b=rand(1,30);ans=op==='+'?a+b:a-b;}
- }
- if(mode===1){
-  if(d===0){a=rand(10,50);b=rand(1,20);ans=a+b;}
-  else if(d===1){a=rand(50,200);b=rand(10,100);ans=a+b;}
-  else{a=rand(100,500);b=rand(50,300);ans=a+b;}
- }
- if(mode===3){
-  if(d===0){a=rand(20,50);b=rand(1,20);ans=a-b;}
-  else if(d===1){a=rand(50,200);b=rand(10,100);ans=a-b;}
-  else{a=rand(100,500);b=rand(50,300);ans=a-b;}
- }
- if(mode===4){
-  if(d===0){a=rand(2,6);b=rand(2,6);ans=a*b;}
-  else if(d===1){a=rand(3,9);b=rand(3,9);ans=a*b;}
-  else{a=rand(5,12);b=rand(5,12);ans=a*b;}
- }
- if(mode===5){
-  if(d===0){b=rand(2,6);ans=rand(2,6);a=b*ans;}
-  else if(d===1){b=rand(3,9);ans=rand(3,9);a=b*ans;}
-  else{b=rand(4,12);ans=rand(4,12);a=b*ans;}
- }
- if(mode===6){
+ if(mode===0){
+  if(d===0){a=rand(1,9);b=rand(1,9);}
+  else if(d===1){a=rand(10,50);b=rand(1,50);}
+  else{a=rand(50,150);b=rand(50,150);}
+  ans=a+b;
+ }else if(mode===1){
+  if(d===0){a=rand(10,50);b=rand(1,20);}
+  else if(d===1){a=rand(50,200);b=rand(10,100);}
+  else{a=rand(100,500);b=rand(50,300);}
+  ans=a+b;
+ }else if(mode===2){
+  if(d===0){a=rand(2,9);b=rand(1,a-1);}
+  else if(d===1){a=rand(20,99);b=rand(10,20);}
+  else{a=rand(50,200);b=rand(20,Math.min(100,a-1));}
+  ans=a-b;
+ }else if(mode===3){
+  if(d===0){a=rand(20,50);b=rand(1,20);}
+  else if(d===1){a=rand(50,200);b=rand(10,Math.min(100,a-1));}
+  else{a=rand(100,500);b=rand(50,Math.min(300,a-1));}
+  ans=a-b;
+ }else if(mode===4){
+  if(d===0){a=rand(2,6);b=rand(2,6);}
+  else if(d===1){a=rand(3,9);b=rand(3,9);}
+  else{a=rand(5,12);b=rand(5,12);}
+  ans=a*b;
+ }else if(mode===5){
+  if(d===0){b=rand(2,6);ans=rand(2,6);}
+  else if(d===1){b=rand(3,9);ans=rand(3,9);}
+  else{b=rand(4,12);ans=rand(4,12);}
+  a=b*ans;
+ }else{
   // mixed mode
-  if(d===0){a=rand(2,9);b=rand(2,9);}
-  else if(d===1){a=rand(10,50);b=rand(5,25);}
-  else{a=rand(20,100);b=rand(5,50);}
-  if(op==='+')ans=a+b;
-  else if(op==='-'){if(a<b){let t=a;a=b;b=t;}ans=a-b;}
-  else if(op==='*'){a=rand(2,9);b=rand(2,9);ans=a*b;}
+  if(op==='+'){
+   if(d===0){a=rand(2,9);b=rand(2,9);}else if(d===1){a=rand(10,50);b=rand(5,25);}else{a=rand(20,100);b=rand(5,50);}
+   ans=a+b;
+  }else if(op==='-'){
+   if(d===0){a=rand(2,9);b=rand(2,9);}else if(d===1){a=rand(10,50);b=rand(5,25);}else{a=rand(20,100);b=rand(5,50);}
+   if(a<b){const t=a;a=b;b=t;}
+   ans=a-b;
+  }else if(op==='*'){a=rand(2,9);b=rand(2,9);ans=a*b;}
   else{b=rand(2,9);ans=rand(2,9);a=b*ans;}
  }
 
- const wrongOpts=new Set();
- wrongOpts.add(ans);
- while(wrongOpts.size<4){
-  let w=ans+rand(-15,15);
-  if(w!==ans&&w>=0)wrongOpts.add(w);
- }
- const wrongArr=Array.from(wrongOpts).sort(()=>Math.random()-0.5);
- const correctIdx=wrongArr.indexOf(ans);
+ const choices=makeChoices(op,a,b,ans);
+ const spd=fallSpeed+level*3;
  return{
   operand1:a,operand2:b,operator:op,answer:ans,
-  wrongOptions:wrongArr,correctBlockIndex:correctIdx,
-  blocks:wrongArr.map((val,i)=>({
-   value:val,isCorrect:i===correctIdx,
-   x:150+i*160,y:-80,targetY:120+level*8,size:65,
-   speed:fallSpeed+level*3+Math.random()*30
-  })),fallSpeed:fallSpeed+level*3
+  blocks:choices.map((val,i)=>({
+   value:val,isCorrect:val===ans,
+   x:150+i*160,y:-80,size:65,
+   speed:spd+Math.random()*30
+  }))
  };
 }
-
-function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
 
 function spawnBlocks(){
  currentProblem=genProblem();
@@ -176,11 +256,36 @@ function spawnBlocks(){
  answerBuffer='';
 }
 
-function resetGame(){
+function startGame(){
  score=0;lives=3;combo=0;maxCombo=0;level=1;correctCount=0;problemsAnswered=0;correctAnswered=0;
- answerBuffer='';currentProblem=null;blocks=[];lasers=[];particles=[];explosions=[];
- flashTimer=0;screenShake=0;fallSpeed=60;spawnTimer=0;spawnElapsed=0;
+ answerBuffer='';currentProblem=null;blocks=[];lasers=[];particles=[];
+ flashTimer=0;screenShake=0;fallSpeed=60;newBest=false;
+ modeBest=save.best[mode+'-'+difficulty]||0;
+ save.settings.mode=mode;save.settings.difficulty=difficulty;persist();
+ state='playing';
  spawnBlocks();
+}
+
+function endGame(){
+ state='gameover';
+ const key=mode+'-'+difficulty;
+ newBest=score>0&&score>(save.best[key]||0);
+ if(newBest)save.best[key]=score;
+ modeBest=save.best[key]||0;
+ if(score>save.bestOverall)save.bestOverall=score;
+ highScore=save.bestOverall;
+ save.stats.games++;save.stats.answered+=problemsAnswered;save.stats.correct+=correctAnswered;
+ persist();
+ playGameOver();
+}
+
+function loseLife(){
+ combo=0;lives--;
+ screenShake=0.3;shakeIntensity=8;
+ flashTimer=0.3;flashColor='#ff2244';
+ playIncorrect();
+ if(lives<=0){endGame();return true;}
+ return false;
 }
 
 function checkAnswer(val){
@@ -188,10 +293,8 @@ function checkAnswer(val){
  if(val===currentProblem.answer){
   combo++;correctCount++;correctAnswered++;
   if(combo>maxCombo)maxCombo=combo;
-  const mult=Math.min(combo,10);
-  let pts=100*mult;
-  score+=pts;
-  spawnStars(currentProblem.blocks[0].x+40,currentProblem.blocks[0].y+40,25);
+  score+=100*Math.min(combo,10);
+  spawnStars(W/2,250,25);
   flashTimer=0.3;flashColor='#00ff88';
   playCorrect();
   if(correctCount%10===0){
@@ -201,29 +304,17 @@ function checkAnswer(val){
   }
   spawnBlocks();
  }else{
-  combo=0;lives--;
-  screenShake=0.3;shakeIntensity=8;
-  flashTimer=0.3;flashColor='#ff2244';
-  playIncorrect();
-  if(lives<=0){
-   state='gameover';
-   if(score>highScore){highScore=score;localStorage.setItem('mb_highScore',highScore);}
-   playGameOver();
-  }else{
-   spawnBlocks();
-  }
+  if(!loseLife())spawnBlocks();
  }
 }
 
 function shootBlock(blockIdx){
  if(blockIdx<0||blockIdx>=blocks.length)return;
- playShoot();
- playExplode();
- spawnParticles(blocks[blockIdx].x+32,blocks[blockIdx].y+32,20,['#ff00aa','#ff8800','#ffcc00'][Math.floor(Math.random()*3)],200);
- const val=blocks[blockIdx].value;
- // Remove the shot block
+ const b=blocks[blockIdx];
+ playShoot();playExplode();
+ spawnParticles(b.x+32,b.y+32,20,['#ff00aa','#ff8800','#ffcc00'][Math.floor(Math.random()*3)],200);
  blocks.splice(blockIdx,1);
- checkAnswer(val);
+ checkAnswer(b.value);
 }
 
 // ---- INIT ----
@@ -234,7 +325,6 @@ function initStarField(){
  }
 }
 initStarField();
-
 // ---- RENDER ----
 function drawStarfield(){
  for(const s of starField){
@@ -243,42 +333,52 @@ function drawStarfield(){
  }
 }
 
+function drawSoundButton(x,y){
+ drawButton(soundOn?'🔊':'🔇',x,y,56,50,toggleSound,{font:'22px sans-serif',fill:'rgba(0,0,0,0.35)',stroke:'#4466aa'});
+}
+
 function drawTitle(){
  ctx.fillStyle='#0a0a2e';ctx.fillRect(0,0,W,H);
  drawStarfield();
 
- // Title
  ctx.textAlign='center';
  ctx.shadowColor='#ffcc00';ctx.shadowBlur=20;
  ctx.font='bold 64px "Courier New",Courier,monospace';
  ctx.fillStyle='#ffcc00';
- ctx.fillText('MATH BLASTER',W/2,160);
+ ctx.fillText('MATH BLASTER',W/2,130);
  ctx.shadowBlur=0;
 
  ctx.font='22px sans-serif';ctx.fillStyle='#00f0ff';
- ctx.fillText('Arithmetic Arcade',W/2,210);
+ ctx.fillText('Pick a mode, then shoot or type the right answer',W/2,172);
 
- // Mode selection
- const modesPerPage=7;
- for(let i=0;i<modesPerPage;i++){
-  const y=270+i*38;
-  ctx.font='20px sans-serif';
-  ctx.fillStyle=i===mode?'#00ff88':'#aaaaff';
-  ctx.fillText((i===mode?'> ':'  ')+modeNames[i],W/2-200,y);
+ // Mode selection: every row is a button
+ for(let i=0;i<7;i++){
+  const y=205+i*36,on=i===mode;
+  drawButton((on?'> ':'')+modeNames[i],W/2-230,y,460,32,()=>{mode=i;},{
+   font:(on?'bold ':'')+'20px sans-serif',color:on?'#00ff88':'#aaaaff',
+   fill:on?'rgba(0,255,136,0.12)':'rgba(255,255,255,0.03)',stroke:on?'#00ff88':'rgba(120,120,255,0.35)'});
  }
 
  // Difficulty
- ctx.font='18px sans-serif';ctx.fillStyle='#ffffff';
- ctx.fillText('Difficulty:',W/2-200,555);
+ ctx.textAlign='left';ctx.font='18px sans-serif';ctx.fillStyle='#ffffff';
+ ctx.fillText('Difficulty:',W/2-230,488);
  for(let i=0;i<3;i++){
-  ctx.fillStyle=i===difficulty?'#ffcc00':'#888888';
-  ctx.fillText((i===difficulty?'[ ':'  ')+diffNames[i]+(i===difficulty?' ]':''),W/2-80+i*150,555);
+  const on=i===difficulty;
+  drawButton(diffNames[i],W/2-110+i*114,464,104,36,()=>{difficulty=i;},{
+   font:(on?'bold ':'')+'18px sans-serif',color:on?'#ffcc00':'#999999',
+   fill:on?'rgba(255,204,0,0.15)':'rgba(255,255,255,0.03)',stroke:on?'#ffcc00':'rgba(150,150,150,0.4)'});
  }
 
- ctx.font='18px sans-serif';ctx.fillStyle='#88aaff';
- ctx.fillText('Arrows: change mode  |  D: difficulty  |  Enter: start',W/2,600);
- ctx.fillStyle='#ffcc00';
- ctx.fillText('High Score: '+highScore,W/2,50);
+ drawButton('START',W/2-110,518,220,52,startGame,{font:'bold 28px "Courier New",Courier,monospace',color:'#0a0a2e',fill:'#00ff88',stroke:'#00ff88'});
+
+ ctx.textAlign='center';
+ ctx.font='16px sans-serif';ctx.fillStyle='#88aaff';
+ ctx.fillText('Keys: ↑↓ mode  |  D difficulty  |  Enter start  |  M sound.  Touch and mouse work too.',W/2,606);
+ ctx.fillStyle='#ffcc00';ctx.font='18px sans-serif';
+ ctx.fillText('High Score: '+highScore,W/2,34);
+ ctx.fillStyle='#aaddff';ctx.font='15px sans-serif';
+ ctx.fillText('Best for '+modeNames[mode]+' ('+diffNames[difficulty]+'): '+(save.best[mode+'-'+difficulty]||0),W/2,56);
+ drawSoundButton(W-70,10);
 }
 
 function drawGameOver(){
@@ -287,26 +387,28 @@ function drawGameOver(){
  ctx.shadowColor='#ff2244';ctx.shadowBlur=20;
  ctx.font='bold 56px "Courier New",Courier,monospace';
  ctx.fillStyle='#ff2244';
- ctx.fillText('GAME OVER',W/2,180);
+ ctx.fillText('GAME OVER',W/2,150);
  ctx.shadowBlur=0;
 
  ctx.font='28px sans-serif';ctx.fillStyle='#ffffff';
- ctx.fillText('Score: '+score,W/2,260);
+ ctx.fillText('Score: '+score+(newBest?'  NEW BEST!':''),W/2,225);
  ctx.fillStyle='#ffcc00';
- ctx.fillText('High Score: '+highScore,W/2,305);
+ ctx.fillText('Best for this mode: '+modeBest,W/2,268);
+ ctx.font='20px sans-serif';ctx.fillStyle='#ffcc00';
+ ctx.fillText('High Score: '+highScore,W/2,302);
 
- ctx.font='20px sans-serif';ctx.fillStyle='#aaaaff';
- ctx.fillText('Level: '+level,W/2,350);
- ctx.fillText('Correct: '+correctAnswered+' / '+problemsAnswered,W/2,385);
- ctx.fillText('Accuracy: '+(problemsAnswered>0?Math.round(correctAnswered/problemsAnswered*100):0)+'%',W/2,420);
- ctx.fillText('Best Combo: '+maxCombo+'x',W/2,455);
+ ctx.fillStyle='#aaaaff';
+ ctx.fillText('Level: '+level,W/2,345);
+ ctx.fillText('Correct: '+correctAnswered+' / '+problemsAnswered,W/2,378);
+ ctx.fillText('Accuracy: '+(problemsAnswered>0?Math.round(correctAnswered/problemsAnswered*100):0)+'%',W/2,411);
+ ctx.fillText('Best Combo: '+maxCombo+'x',W/2,444);
 
- ctx.font='22px sans-serif';ctx.fillStyle='#00ff88';
- ctx.fillText('Press Enter to Play Again',W/2,530);
+ drawButton('Back to menu',W/2-130,490,260,52,()=>{state='title';},{font:'bold 24px sans-serif',color:'#0a0a2e',fill:'#00ff88',stroke:'#00ff88'});
+ ctx.font='16px sans-serif';ctx.fillStyle='#88aaff';
+ ctx.fillText('or press Enter',W/2,570);
 }
 
 function drawHUD(){
- // Score, lives, combo, level
  ctx.textAlign='left';
  ctx.font='bold 22px "Courier New",Courier,monospace';
  ctx.fillStyle='#ffffff';
@@ -322,7 +424,7 @@ function drawHUD(){
  ctx.font='18px "Courier New",Courier,monospace';
  ctx.fillText('COMBO: '+combo+'x'+(combo>0?' (×'+Math.min(combo,10)+')':''),20,85);
 
- // Draw answer input
+ // Typed answer
  ctx.fillStyle='rgba(0,0,0,0.5)';
  ctx.fillRect(W/2-100,10,200,40);
  ctx.strokeStyle='#00f0ff';ctx.lineWidth=2;
@@ -331,6 +433,9 @@ function drawHUD(){
  ctx.font='bold 28px "Courier New",Courier,monospace';
  ctx.fillStyle='#00f0ff';
  ctx.fillText(answerBuffer+(Math.floor(Date.now()/500)%2?'|':''),W/2,40);
+
+ ctx.font='15px sans-serif';ctx.fillStyle='rgba(170,200,255,0.75)';
+ ctx.fillText('Tap or shoot the right answer  |  or type it + Enter',W/2,H-16);
 }
 
 function drawPaused(){
@@ -338,16 +443,16 @@ function drawPaused(){
  ctx.textAlign='center';
  ctx.font='bold 48px sans-serif';
  ctx.fillStyle='#ffcc00';
- ctx.fillText('PAUSED',W/2,H/2-20);
- ctx.font='20px sans-serif';
+ ctx.fillText('PAUSED',W/2,H/2-40);
+ drawButton('Resume',W/2-100,H/2-10,200,50,()=>{state='playing';},{font:'bold 24px sans-serif'});
+ ctx.font='18px sans-serif';
  ctx.fillStyle='#ffffff';
- ctx.fillText('Press Esc or P to resume',W/2,H/2+30);
+ ctx.fillText('or press Esc / P',W/2,H/2+80);
 }
 
 function drawBlocks(){
  for(const b of blocks){
   const x=b.x,y=b.y;
-  // Block body
   // Every block looks the same, so the color never gives the answer away.
   const grad=ctx.createRadialGradient(x+15,y+15,5,x+32,y+32,35);
   grad.addColorStop(0,'#00f0ff');grad.addColorStop(1,'#0088cc');
@@ -358,9 +463,8 @@ function drawBlocks(){
   ctx.strokeStyle='#00ffff';ctx.lineWidth=2;
   ctx.stroke();
 
-  // Value text
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font='bold 24px "Courier New",Courier,monospace';
+  ctx.font='bold '+(String(b.value).length>3?20:24)+'px "Courier New",Courier,monospace';
   ctx.fillStyle='#ffffff';
   ctx.fillText(b.value,x+32,y+32);
   ctx.textBaseline='alphabetic';
@@ -374,7 +478,6 @@ function drawLasers(){
   ctx.lineWidth=4;
   ctx.beginPath();ctx.moveTo(l.x,l.y);ctx.lineTo(l.x,l.y+30);ctx.stroke();
   ctx.shadowBlur=0;
-  // Tip glow
   ctx.fillStyle='#ffffff';
   ctx.beginPath();ctx.arc(l.x,l.y,4,0,Math.PI*2);ctx.fill();
  }
@@ -382,247 +485,193 @@ function drawLasers(){
 
 function drawProblem(){
  if(!currentProblem)return;
+ ctx.fillStyle='rgba(10,10,46,0.88)';
+ ctx.beginPath();ctx.roundRect(W/2-190,52,380,58,12);ctx.fill();
  ctx.textAlign='center';
  ctx.shadowColor='#ffcc00';ctx.shadowBlur=10;
  ctx.font='bold 40px "Courier New",Courier,monospace';
  ctx.fillStyle='#ffffff';
  const opSymbol=currentProblem.operator==='*'?'×':currentProblem.operator==='/'?'÷':currentProblem.operator;
- ctx.fillText(currentProblem.operand1+' '+opSymbol+' '+currentProblem.operand2+' = ?',W/2,75);
+ ctx.fillText(currentProblem.operand1+' '+opSymbol+' '+currentProblem.operand2+' = ?',W/2,90);
  ctx.shadowBlur=0;
 }
 
+function drawPlayingFrame(){
+ ctx.fillStyle='#0a0a2e';ctx.fillRect(0,0,W,H);
+ drawStarfield();
+ if(flashTimer>0){
+  ctx.fillStyle=flashColor+(Math.floor(flashTimer*10)%2?'44':'22');
+  ctx.fillRect(0,0,W,H);
+ }
+ drawBlocks();
+ drawProblem();
+ drawLasers();
+ drawHUD();
+ for(const p of particles){
+  ctx.globalAlpha=Math.max(p.life,0);
+  ctx.fillStyle=p.color;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.size*Math.max(p.life,0),0,Math.PI*2);ctx.fill();
+ }
+ ctx.globalAlpha=1;
+}
 // ---- UPDATE ----
 function updatePlaying(dt){
- // Timer flash
  if(flashTimer>0)flashTimer-=dt;
- if(screenShake>0)screenShake-=dt;
-
  updateParticles(dt);
 
- // Lasers
+ // Lasers (keyboard shots)
  for(let i=lasers.length-1;i>=0;i--){
   const l=lasers[i];
   l.y-=500*dt;
-  // Check collision with blocks
   let hit=false;
   for(let j=blocks.length-1;j>=0;j--){
    const b=blocks[j];
    if(l.x>b.x&&l.x<b.x+65&&l.y>b.y&&l.y<b.y+65){
-    playExplode();
-    spawnParticles(b.x+32,b.y+32,20,['#ff00aa','#ff8800'][Math.floor(Math.random()*2)],200);
-    const val=b.value;
-    blocks.splice(j,1);
-    checkAnswer(val);
+    shootBlock(j);
     hit=true;break;
    }
   }
   if(hit||l.y<-20)lasers.splice(i,1);
+  if(state!=='playing')return;
  }
 
- // Fall blocks
+ // Falling blocks. Only the RIGHT block reaching the bottom costs a heart; wrong blocks just drift away.
  for(let i=blocks.length-1;i>=0;i--){
   const b=blocks[i];
   b.y+=b.speed*dt;
   if(b.y>H+80){
-   // Missed block reached bottom → penalty
-   blocks.splice(i,1);
-   combo=0;
-   lives--;
-   screenShake=0.3;
-   shakeIntensity=8;
-   flashTimer=0.3;
-   flashColor='#ff2244';
-   playIncorrect();
-
-   if(lives<=0){
-    state='gameover';
-    if(score>highScore){highScore=score;localStorage.setItem('mb_highScore',highScore);}
-    playGameOver();
-   }else if(blocks.length===0){
-    spawnBlocks();
+   if(b.isCorrect){
+    problemsAnswered++;
+    if(!loseLife())spawnBlocks();
+    return;
    }
+   blocks.splice(i,1);
   }
  }
 
- // If all blocks gone but still alive, spawn new
- if(blocks.length===0&&lives>0){
-  spawnBlocks();
- }
+ if(blocks.length===0&&lives>0)spawnBlocks();
 
- // Starfield scroll
  for(const s of starField){
   s.y+=s.speed*dt*0.3;
   if(s.y>H){s.y=0;s.x=Math.random()*W;}
  }
 }
 
+function nearestBlock(){
+ let bestIdx=-1,bestDist=9999;
+ for(let i=0;i<blocks.length;i++){
+  const dist=Math.abs(blocks[i].x+32-W/2);
+  if(dist<bestDist){bestDist=dist;bestIdx=i;}
+ }
+ return bestIdx;
+}
+
+function shootLaserAt(idx){
+ if(idx<0)return;
+ const b=blocks[idx];
+ lasers.push({x:b.x+32,y:b.y+35});
+ playShoot();
+}
+
+// ---- STATE STEPS ----
+function stepTitle(dt){
+ drawTitle();
+ for(const s of starField){
+  s.y+=s.speed*dt*0.2;
+  if(s.y>H){s.y=0;s.x=Math.random()*W;}
+ }
+ if(handleButtonClick())return;
+ if(justPressed('ArrowUp')||justPressed('w')||justPressed('W')){mode=(mode+6)%7;}
+ if(justPressed('ArrowDown')||justPressed('s')||justPressed('S')){mode=(mode+1)%7;}
+ if(justPressed('d')||justPressed('D')){difficulty=(difficulty+1)%3;}
+ if(justPressed('Enter')||justPressed(' ')){initAudio();startGame();}
+}
+
+function stepPaused(){
+ drawPlayingFrame();
+ drawPaused();
+ drawSoundButton(W-62,H-60);
+ if(handleButtonClick())return;
+ if(justPressed('Escape')||justPressed('p')||justPressed('P')||justPressed('Enter'))state='playing';
+}
+
+function stepPlaying(dt){
+ updatePlaying(dt);
+ if(state!=='playing')return;
+ drawPlayingFrame();
+ drawButton('❚❚',W-124,H-60,56,50,()=>{state='paused';},{font:'bold 16px sans-serif',fill:'rgba(0,0,0,0.35)',stroke:'#4466aa'});
+ drawSoundButton(W-62,H-60);
+
+ // Tap or click a block to shoot it
+ if(!handleButtonClick()&&mouse.clicked){
+  for(let i=0;i<blocks.length;i++){
+   const b=blocks[i];
+   if(mouse.x>=b.x-12&&mouse.x<=b.x+77&&mouse.y>=b.y-12&&mouse.y<=b.y+77){
+    mouse.clicked=false;shootBlock(i);break;
+   }
+  }
+  if(state!=='playing')return;
+ }
+
+ for(let d=0;d<=9;d++){
+  if(justPressed(String(d))&&answerBuffer.length<6)answerBuffer+=d;
+ }
+ if(justPressed('Backspace'))answerBuffer=answerBuffer.slice(0,-1);
+ if(justPressed('Enter')&&answerBuffer!==''){
+  const val=parseInt(answerBuffer,10);
+  answerBuffer='';
+  if(!isNaN(val))checkAnswer(val);
+  if(state!=='playing')return;
+ }
+ if(justPressed('ArrowLeft')||justPressed('ArrowRight')){
+  const dir=justPressed('ArrowRight')?1:-1;
+  let bestIdx=-1,bestDist=9999;
+  for(let i=0;i<blocks.length;i++){
+   const bx=blocks[i].x+32;
+   if((dir>0&&bx>W/2)||(dir<0&&bx<W/2)){
+    const dist=Math.abs(bx-W/2);
+    if(dist<bestDist){bestDist=dist;bestIdx=i;}
+   }
+  }
+  shootLaserAt(bestIdx);
+ }
+ if(justPressed(' '))shootLaserAt(nearestBlock());
+ if(justPressed('Escape')||justPressed('p')||justPressed('P'))state='paused';
+}
+
+function stepGameOver(){
+ drawGameOver();
+ if(handleButtonClick())return;
+ if(justPressed('Enter')||justPressed(' '))state='title';
+}
+
 // ---- MAIN LOOP ----
 let lastTime=0;
-let screenTimer=0;
-let titleFlash=0;
 
 function gameLoop(timestamp){
  const dt=Math.min((timestamp-lastTime)/1000,0.05);
  lastTime=timestamp;
+ uiButtons=[];
 
  ctx.save();
-
- // Screen shake
  if(screenShake>0){
-  const sx=(Math.random()-0.5)*shakeIntensity*2;
-  const sy=(Math.random()-0.5)*shakeIntensity*2;
-  ctx.translate(sx,sy);
+  screenShake-=dt;
+  ctx.translate((Math.random()-0.5)*shakeIntensity*2,(Math.random()-0.5)*shakeIntensity*2);
  }
+ if(justPressed('m')||justPressed('M'))toggleSound();
 
- if(state==='title'){
-  drawTitle();
-  titleFlash+=dt;
-  // Animate star field
-  for(const s of starField){
-   s.y+=s.speed*dt*0.2;
-   if(s.y>H){s.y=0;s.x=Math.random()*W;}
-  }
-  // Handle mode selection
-  if(justPressed('ArrowUp')||justPressed('w')||justPressed('W')){mode=(mode-1+7)%7;}
-  if(justPressed('ArrowDown')||justPressed('s')||justPressed('S')){mode=(mode+1)%7;}
-  if(justPressed('d')||justPressed('D')){difficulty=(difficulty+1)%3;}
-  if(justPressed('Enter')||justPressed(' ')){state='playing';resetGame();initAudio();}
-  // Click
-  if(mouse.clicked){
-   const my=mouse.y;
-   if(my>=255&&my<525){
-    const idx=Math.floor((my-255)/38);
-    if(idx>=0&&idx<7)mode=idx;
-   }
-   if(my>=540&&my<570){
-    const idx=Math.floor((mouse.x-(W/2-80))/150);
-    if(idx>=0&&idx<3)difficulty=idx;
-   }
-   if(my>=580&&my<620){state='playing';resetGame();initAudio();}
-   mouse.clicked=false;
-  }
-  // Clear justPressed flags
-  for(const k in keys)if(keys[k]===2)keys[k]=1;
-  ctx.restore();
-  requestAnimationFrame(gameLoop);return;
- }
-
- if(state==='playing'||state==='paused'){
-  if(state==='paused'){
-   drawPlayingFrame();
-   drawPaused();
-   if(justPressed('Escape')||justPressed('p')||justPressed('P')){state='playing';}
-   for(const k in keys)if(keys[k]===2)keys[k]=1;
-   ctx.restore();
-   requestAnimationFrame(gameLoop);return;
-  }
-
-  updatePlaying(dt);
+ if(state==='title')stepTitle(dt);
+ else if(state==='paused')stepPaused();
+ else if(state==='playing')stepPlaying(dt);
+ else if(state==='gameover'){
   drawPlayingFrame();
-
-  // Input handling
-  // Digit input
-  for(let d=0;d<=9;d++){
-   const kd=d.toString();
-   if(justPressed(kd)){
-    if(answerBuffer.length<6)answerBuffer+=kd;
-   }
-  }
-  // Negative sign
-  if(justPressed('-')&&answerBuffer.length===0){
-   answerBuffer='-';
-  }
-  // Backspace
-  if(justPressed('Backspace')){
-   answerBuffer=answerBuffer.slice(0,-1);
-  }
-  // Enter to submit
-  if(justPressed('Enter')){
-   if(answerBuffer!==''&&answerBuffer!=='-'){
-    const val=parseInt(answerBuffer);
-    if(!isNaN(val)){
-      checkAnswer(val);   // Use the single source of truth (also used by laser shooting)
-    }
-    answerBuffer='';
-   }
-  }
-
-  // Shooting with arrow keys
-  if(justPressed('ArrowLeft')||justPressed('ArrowRight')){
-   // Find the block in that direction to shoot
-   const dir=justPressed('ArrowRight')?1:-1;
-   // Find the closest block in that direction from center
-   let bestIdx=-1,bestDist=9999;
-   const cx=W/2;
-   for(let i=0;i<blocks.length;i++){
-    const b=blocks[i];
-    const bx=b.x+32;
-    if(dir>0&&bx>cx||dir<0&&bx<cx){
-     const dist=Math.abs(bx-cx);
-     if(dist<bestDist){bestDist=dist;bestIdx=i;}
-    }
-   }
-   if(bestIdx>=0){
-    const b=blocks[bestIdx];
-    lasers.push({x:b.x+32,y:b.y+35});
-    playShoot();
-   }
-  }
-  // Space to shoot at nearest block
-  if(justPressed(' ')){
-    let bestIdx=-1,bestDist=9999;
-    const cx=W/2;
-    for(let i=0;i<blocks.length;i++){
-     const b=blocks[i];
-     const bx=b.x+32;
-     const dist=Math.abs(bx-cx);
-     if(dist<bestDist){bestDist=dist;bestIdx=i;}
-    }
-    if(bestIdx>=0){
-     const b=blocks[bestIdx];
-     lasers.push({x:b.x+32,y:b.y+35});
-     playShoot();
-    }
-  }
-
-  if(justPressed('Escape')||justPressed('p')||justPressed('P')){state='paused';}
+  stepGameOver();
  }
-
- if(state==='gameover'){
-  drawGameOver();
-  if(justPressed('Enter')||justPressed(' ')){state='title';}
-  // Click to continue
-  if(mouse.clicked&&mouse.y>500&&mouse.y<570){state='title';mouse.clicked=false;}
- }
-
- for(const k in keys)if(keys[k]===2)keys[k]=1;
- if(mouse.clicked)mouse.clicked=false;
 
  ctx.restore();
+ for(const k in keys)if(keys[k]===2)keys[k]=1;
+ mouse.clicked=false;
  requestAnimationFrame(gameLoop);
-}
-
-function drawPlayingFrame(){
- ctx.fillStyle='#0a0a2e';ctx.fillRect(0,0,W,H);
- drawStarfield();
-
- // Flash overlay
- if(flashTimer>0){
-  ctx.fillStyle=flashColor+(Math.floor(flashTimer*10)%2?'44':'22');
-  ctx.fillRect(0,0,W,H);
- }
-
- drawProblem();
- drawBlocks();
- drawLasers();
- drawHUD();
- updateParticles(0.016);
- for(const p of particles){
-  ctx.globalAlpha=p.life;
-  ctx.fillStyle=p.color;
-  ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();
- }
- ctx.globalAlpha=1;
 }
 
 // Polyfill roundRect
@@ -649,7 +698,17 @@ function resizeCanvas(){
 window.addEventListener('resize',resizeCanvas);
 resizeCanvas();
 
-// Start
+// Test hook: math-blaster.html?debug
+if(/[?&]debug\b/.test(location.search)){
+ window.__mb={
+  makeChoices,genProblem,startGame,checkAnswer,save,persist,
+  get state(){return state;},get blocks(){return blocks;},get problem(){return currentProblem;},
+  get score(){return score;},get lives(){return lives;},get level(){return level;},
+  setMode(m,d){mode=m;difficulty=d;},
+  get soundOn(){return soundOn;}
+ };
+}
+
 requestAnimationFrame(gameLoop);
 })();
 </script>
