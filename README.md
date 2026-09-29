@@ -80,6 +80,7 @@ Scores and progress are stored only in your browser's `localStorage`. The progre
 - Each game is one self-contained file: inline CSS and JavaScript, art drawn in code, sound from the Web Audio API.
 - `plumber-typing.html?debug` and `mathman.html?debug` expose a small `window.__plumber` / `window.__mathman`
   object for automated play-testing.
+- `node tools/build-dist.mjs` builds a clean `dist/` (pages, screenshots, `_headers`, `_redirects`) for Cloudflare Pages or Netlify. See [docs/HOSTING.md](docs/HOSTING.md) for how the site is hosted and how to set up the free mirror.
 - `node tools/capture-screenshots.mjs` regenerates everything in `docs/screenshots/` with headless Chrome or Edge
   (Node 22+, no npm install needed). Serve the folder on port 8765 first:
   `python -m http.server 8765 --bind 127.0.0.1`.

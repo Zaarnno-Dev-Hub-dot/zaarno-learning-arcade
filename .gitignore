@@ -4,3 +4,4 @@
 .claude/
 # local agent handoff notes (machine paths, not for the public repo)
 HANDOFF.md
+dist/
