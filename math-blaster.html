@@ -348,17 +348,14 @@ function drawBlocks(){
  for(const b of blocks){
   const x=b.x,y=b.y;
   // Block body
+  // Every block looks the same, so the color never gives the answer away.
   const grad=ctx.createRadialGradient(x+15,y+15,5,x+32,y+32,35);
-  if(b.isCorrect){
-   grad.addColorStop(0,'#00f0ff');grad.addColorStop(1,'#0088cc');
-  }else{
-   grad.addColorStop(0,'#ff00aa');grad.addColorStop(1,'#660044');
-  }
+  grad.addColorStop(0,'#00f0ff');grad.addColorStop(1,'#0088cc');
   ctx.fillStyle=grad;
-  ctx.shadowColor=b.isCorrect?'#00f0ff':'#ff00aa';ctx.shadowBlur=15;
+  ctx.shadowColor='#00f0ff';ctx.shadowBlur=15;
   ctx.beginPath();ctx.roundRect(x,y,65,65,10);ctx.fill();
   ctx.shadowBlur=0;
-  ctx.strokeStyle=b.isCorrect?'#00ffff':'#ff66cc';ctx.lineWidth=2;
+  ctx.strokeStyle='#00ffff';ctx.lineWidth=2;
   ctx.stroke();
 
   // Value text
