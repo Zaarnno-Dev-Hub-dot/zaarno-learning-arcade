@@ -60,6 +60,7 @@ kbd { font-family:inherit; font-weight:800; background:#e9edf3; color:#1b1b2f; b
 .rotate-hint { display:none; max-width:30em; margin:14px 16px; text-align:center; color:var(--muted); font-size:15px; line-height:1.5; }
 @media (orientation: portrait) and (max-width: 700px) { .rotate-hint { display:block; } }
 </style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b1224%22/%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22%2327c2b0%22/%3E%3Ccircle cx=%2240%22 cy=%2244%22 r=%226%22 fill=%22%23fff%22/%3E%3Ccircle cx=%2260%22 cy=%2244%22 r=%226%22 fill=%22%23fff%22/%3E%3C/svg%3E">
 </head>
 <body>
 <header class="topbar">
@@ -1000,7 +1001,7 @@ function showMap() {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'lvl'; b.dataset.idx = i; b.disabled = !open;
       b.innerHTML = '<b>' + L.id + '</b>' + (open ? '' : '&#128274; ') + L.name +
-        '<span class="st">' + starsHtml(rec ? rec.stars : 0) + (rec ? '<span class="best">' + rec.wpm + ' WPM</span>' : '') + '</span>';
+        '<span class="st">' + starsHtml(rec ? rec.stars : 0) + (rec ? '<span class="best">' + (Number(rec.wpm) || 0) + ' WPM</span>' : '') + '</span>';
       b.addEventListener('click', () => showIntro(i));
       b.addEventListener('focus', () => { view.world = L.world; view.level = i; });
       col.appendChild(b);

@@ -55,8 +55,8 @@ for a math problem:
 ## Play locally
 
 ```bash
-git clone https://github.com/Zaarnno-Dev-Hub-dot/zaarno-arcade-games.git
-cd zaarno-arcade-games
+git clone https://github.com/Zaarnno-Dev-Hub-dot/zaarno-learning-arcade.git
+cd zaarno-learning-arcade
 python -m http.server 8000
 ```
 
