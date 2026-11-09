@@ -469,7 +469,7 @@ function loadData() {
   const d = { stars: {}, range: 'A-F', played: 0 };
   const raw = LL.save.get(SAVE_KEY, null);
   if (raw && typeof raw === 'object') {
-    if (RANGE_END[raw.range]) d.range = raw.range;
+    if (Object.prototype.hasOwnProperty.call(RANGE_END, raw.range)) d.range = raw.range;
     if (raw.stars && typeof raw.stars === 'object') for (const k in raw.stars) { const v = +raw.stars[k]; if (v >= 1 && v <= 3) d.stars[k] = v | 0; }
     d.played = Math.max(0, +raw.played | 0);
   }
@@ -731,7 +731,7 @@ function wire() {
   addEventListener('keydown', e => { if (e.key === 'Escape' && S.screen !== 'title') toTitle(); });
 }
 buildTitle(); renderRange(); renderSound(); renderStarLine(); wire();
-if (/[?&]debug/.test(location.search)) window.__ll = { S, data };
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) && /[?&]debug\b/.test(location.search)) window.__ll = { S, data };
 </script>
 </body>
 </html>

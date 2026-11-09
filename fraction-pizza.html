@@ -304,7 +304,7 @@ function star(on) {
   for (let k = 0; k < 10; k++) { const r = k % 2 ? 8.6 : 20, a = (-90 + k * 36) * Math.PI / 180; pts += (+(r * Math.cos(a)).toFixed(2)) + ',' + (+(r * Math.sin(a)).toFixed(2)) + ' '; }
   return '<svg viewBox="-23 -23 46 46" aria-hidden="true"><polygon points="' + pts + '" fill="' + (on ? '#ffc83d' : '#f0e2c8') + '" stroke="' + OUT + '" stroke-width="2.6" stroke-linejoin="round"/></svg>';
 }
-const starsHTML = n => '<span class="starsRow" role="img" aria-label="' + n + ' of 3 stars">' + [0, 1, 2].map(i => star(i < n)).join('') + '</span>';
+const starsHTML = n => { n = Math.max(0, Math.min(3, Math.floor(Number(n)) || 0)); return '<span class="starsRow" role="img" aria-label="' + n + ' of 3 stars">' + [0, 1, 2].map(i => star(i < n)).join('') + '</span>'; };
 // ===== questions: built from enumerated pools, then PROVEN before they can be shown =====
 const MODES = {
   serve:   { name: 'Serve It',         blurb: 'Put the right slices on the plate.' },
@@ -455,7 +455,7 @@ const SAVE_KEY = 'fractionPizza.v1';
 let save = LL.save.get(SAVE_KEY, null);
 if (!save || typeof save !== 'object' || !save.stars || typeof save.stars !== 'object') save = { v: 1, stars: {}, best: {}, rounds: 0, mode: 'serve' };
 if (!save.best || typeof save.best !== 'object') save.best = {};
-if (!MODES[save.mode]) save.mode = 'serve';
+if (!Object.prototype.hasOwnProperty.call(MODES, save.mode)) save.mode = 'serve';
 const persist = () => LL.save.set(SAVE_KEY, save);
 const state = { screen: 'home', mode: save.mode, level: 1, qs: [], qi: 0, q: null, attempts: 0, clean: 0, answered: false, results: [], served: [], speech: '', stars: 0, face: { v: 0, chef: true } };
 
@@ -717,7 +717,7 @@ function answerWrong() {
   if (i < 0) return false;
   chooseOpt(i); return true;
 }
-if (/[?&]debug\b/.test(location.search)) {
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) && /[?&]debug\b/.test(location.search)) {
   window.__pizza = { get state() { return state; }, start: startRound, solve, answerWrong, next: nextQuestion, sliceAngles, verify, verifyAll, makeRound, pizzaSVG, LEVELS, MODES, get save() { return save; } };
 }
 

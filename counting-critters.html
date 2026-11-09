@@ -737,7 +737,7 @@ function answerWrong() {
   while (S.basket < want && S.pile > 0) basketAdd(); while (S.basket > want) basketTake();
   return basketCheck() === 'wrong';
 }
-if (/[?&]debug\b/.test(location.search)) {
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) && /[?&]debug\b/.test(location.search)) {
   window.__counting = {
     state: S, startRound, answerCorrect, answerWrong, roundsDone: () => data.rounds, data: () => data, next,
     startLevel: n => startRound('count', n), solve: answerCorrect, answer: ok => (ok ? answerCorrect() : answerWrong()),

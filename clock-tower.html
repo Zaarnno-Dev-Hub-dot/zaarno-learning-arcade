@@ -668,7 +668,7 @@ $('#btnSound').addEventListener('click', () => { LL.setMuted(!LL.muted); syncSou
 ['pointerdown', 'keydown'].forEach(n => addEventListener(n, () => LL.ctx(), { passive: true }));
 
 // ---- test hook: open clock-tower.html?debug ---------------------------------------------
-if (/[?&]debug\b/.test(location.search)) {
+if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) && /[?&]debug\b/.test(location.search)) {
   const hands = () => {
     const ang = sel => { const m = /rotate\(\s*(-?[\d.eE+-]+)/.exec($(sel).getAttribute('transform') || ''); const a = m ? parseFloat(m[1]) : NaN; return Math.round((((a % 360) + 360) % 360) * 1000) / 1000; };
     const c = fromT(state.T);
