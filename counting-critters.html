@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Counting Critters</title>
+<meta name="description" content="Count bunnies, ducklings, ladybugs and frogs, pick the right number, fill the carrot basket and collect stickers.">
+<style>
+:root { --line:#55433f; --ink:#43353f; --sky:#d4f0fb; --paper:#fffaf0; --pink:#ffb9cc; --yellow:#ffe58a; --mint:#aee8cc; --lav:#d6c6ff; --peach:#ffd0a8; --blue:#a9ddff; --grass:#c9eeb0; --focus:#3b6cff; }
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; }
+body { display:flex; flex-direction:column; height:100vh; height:100dvh; background:var(--sky); color:var(--ink); font-family:'Arial Rounded MT Bold','Trebuchet MS','Segoe UI',system-ui,sans-serif; overflow:hidden; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+button { font:inherit; color:inherit; touch-action:manipulation; }
+[hidden] { display:none !important; }
+:focus-visible { outline:4px solid var(--focus); outline-offset:3px; }
+
+/* ---------- top bar ---------- */
+.topbar { position:relative; z-index:3; display:flex; align-items:center; gap:8px; padding:6px 10px; min-height:60px; }
+.tb { font-size:15px; font-weight:800; min-height:48px; min-width:48px; display:inline-flex; align-items:center; justify-content:center; padding:0 16px; color:var(--ink); background:var(--paper); border:3px solid var(--line); border-radius:999px; box-shadow:0 4px 0 var(--line); cursor:pointer; text-decoration:none; white-space:nowrap; }
+.tb:active { transform:translateY(3px); box-shadow:0 1px 0 var(--line); }
+.tb-title { flex:1; text-align:center; font-weight:900; font-size:16px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); opacity:.65; }
+@media (max-width:560px) { .tb-title { display:none; } .topbar { justify-content:space-between; } }
+
+/* ---------- meadow backdrop (flat colors, no outlines) ---------- */
+.scene { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.scene .sun { position:absolute; top:64px; right:4vw; width:clamp(64px,13vmin,120px); animation:spin 90s linear infinite; }
+.scene .cloud { position:absolute; width:clamp(90px,20vmin,190px); }
+.scene .c1 { top:96px; left:5vw; } .scene .c2 { top:250px; right:1vw; width:clamp(64px,10vmin,120px); }
+@media (max-width:560px) { .scene .sun { right:-16px; top:62px; width:70px; } .scene .c1 { left:-20px; } }
+.scene .hill { position:absolute; border-radius:50%; }
+.scene .h1 { left:-18vw; bottom:-24vh; width:78vw; height:46vh; background:#c3e8ab; }
+.scene .h2 { right:-22vw; bottom:-30vh; width:92vw; height:52vh; background:#aee096; }
+.scene .grass { position:absolute; left:0; right:0; bottom:0; height:9vh; background:#9ad483; }
+.scene .flowers { position:absolute; left:0; bottom:0; width:100%; height:64px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ---------- layout ---------- */
+#app { position:relative; z-index:1; flex:1; min-height:0; width:100%; max-width:1000px; margin:0 auto; padding:2px 14px calc(14px + env(safe-area-inset-bottom)); display:flex; }
+.screen { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; gap:12px; overflow-y:auto; overflow-x:hidden; padding:6px 4px 10px; }
+.card { background:var(--paper); border:3px solid var(--line); border-radius:22px; box-shadow:0 5px 0 var(--line); }
+.btn { font-weight:800; font-size:1.1rem; min-height:56px; min-width:56px; padding:.35em 1.3em; border-radius:999px; border:3px solid var(--line); background:var(--yellow); color:var(--ink); box-shadow:0 5px 0 var(--line); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:.5em; }
+.btn:active:not(:disabled) { transform:translateY(4px); box-shadow:0 1px 0 var(--line); }
+.btn.go { background:var(--mint); } .btn.help { background:var(--lav); } .btn.ghost { background:#fff; }
+.btn:disabled { opacity:.5; cursor:default; }
+.row { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center; }
+
+/* ---------- title ---------- */
+.logo { text-align:center; font-weight:900; line-height:1; font-size:clamp(2.3rem,8.5vw,4rem); letter-spacing:.01em; outline:none; padding-top:4px;
+  text-shadow:3px 0 0 var(--line),-3px 0 0 var(--line),0 3px 0 var(--line),0 -3px 0 var(--line),2px 2px 0 var(--line),-2px 2px 0 var(--line),2px -2px 0 var(--line),-2px -2px 0 var(--line),0 7px 0 var(--line); }
+.logo .l1 { color:var(--pink); } .logo .l2 { color:var(--yellow); }
+.parade { display:flex; justify-content:center; align-items:flex-end; gap:clamp(4px,2vw,22px); }
+.parade .pc { position:relative; width:clamp(54px,14vw,96px); aspect-ratio:1; }
+.levelpick { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; padding:10px 14px; }
+.lp-label { font-weight:900; font-size:1.05rem; margin-right:4px; }
+.lv { font-weight:900; font-size:1.5rem; min-height:56px; min-width:84px; border-radius:999px; border:3px solid var(--line); background:#fff; box-shadow:0 4px 0 var(--line); cursor:pointer; padding:0 14px; }
+.lv[aria-pressed="true"] { background:var(--yellow); transform:translateY(2px); box-shadow:0 2px 0 var(--line); }
+.acts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.act { position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 12px 12px; border:3px solid var(--line); border-radius:26px; box-shadow:0 6px 0 var(--line); cursor:pointer; text-align:center; min-height:200px; }
+.act:active { transform:translateY(5px); box-shadow:0 1px 0 var(--line); }
+.act .ico { width:92px; height:92px; display:block; flex:none; }
+.act .ico svg { width:100%; height:100%; display:block; }
+.act b { font-size:1.4rem; line-height:1.1; }
+.act small { font-size:.95rem; font-weight:700; opacity:.8; line-height:1.2; }
+.act .at { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.act .st { display:flex; gap:3px; margin-top:6px; min-height:26px; }
+.act .st svg { width:26px; height:26px; }
+.a-count { background:var(--pink); } .a-many { background:var(--yellow); } .a-basket { background:var(--mint); }
+.album-btn { align-self:center; background:var(--lav); }
+@media (max-width:720px) {
+  .acts { grid-template-columns:1fr; gap:10px; }
+  .act { flex-direction:row; text-align:left; min-height:86px; padding:8px 14px; gap:12px; border-radius:24px; }
+  .act .ico { width:62px; height:62px; } .act .at { flex:1; align-items:flex-start; gap:2px; } .act .st { margin-top:3px; min-height:22px; } .act .st svg { width:22px; height:22px; }
+  .levelpick { padding:8px 10px; gap:8px; } .lp-label { flex:0 0 100%; text-align:center; margin:0; font-size:.95rem; } .lv { flex:1; min-width:0; min-height:52px; font-size:1.35rem; }
+  .act b { font-size:1.2rem; } .act small { font-size:.85rem; }
+  .screen { gap:9px; }
+}
+
+/* ---------- play ---------- */
+.playbar { display:flex; align-items:center; gap:12px; }
+.dots { display:flex; gap:6px; margin-left:auto; padding:6px 10px; background:var(--paper); border:3px solid var(--line); border-radius:999px; }
+.dots svg { width:26px; height:26px; display:block; }
+.dots .d.cur svg { transform:scale(1.18); }
+.dots .d.pop svg { animation:pop .5s ease-out 1; }
+.prompt { display:flex; align-items:center; gap:12px; padding:10px 12px 10px 18px; outline:none; }
+.prompt .txt { flex:1; min-width:0; font-size:clamp(1.15rem,3.6vw,1.65rem); font-weight:900; line-height:1.2; }
+.prompt .fb { display:block; margin-top:3px; min-height:1.25em; font-size:.82em; font-weight:800; color:#3d7a3a; }
+.hear { flex:none; width:56px; height:56px; border-radius:50%; border:3px solid var(--line); background:var(--blue); box-shadow:0 4px 0 var(--line); display:grid; place-items:center; cursor:pointer; }
+.hear:active { transform:translateY(3px); box-shadow:0 1px 0 var(--line); }
+.num { flex:none; width:78px; height:78px; border-radius:50%; border:3px solid var(--line); background:var(--yellow); display:grid; place-items:center; font:900 2.5rem Verdana,'Segoe UI',sans-serif; box-shadow:0 4px 0 var(--line); }
+.num.bump { animation:pop .4s ease-out 1; }
+.modebody { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; gap:12px; }
+.fx { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:5; border-radius:26px; }
+.field { position:relative; flex:1; min-height:210px; background:var(--grass); border:3px solid var(--line); border-radius:26px; box-shadow:0 5px 0 var(--line); overflow:hidden;
+  background-image:radial-gradient(circle at 18px 18px,#dff6c8 5px,transparent 6px); background-size:60px 60px; }
+.crit { position:absolute; transform:translate(-50%,-50%); background:none; border:0; padding:0; cursor:pointer; border-radius:50%; }
+div.crit { cursor:default; }
+.bob { position:absolute; inset:0; display:block; transform-origin:50% 92%; animation:wig 3.4s ease-in-out infinite; animation-delay:var(--d,0s); }
+.bob svg { width:100%; height:100%; display:block; overflow:visible; }
+.bob.hop { animation:hop .55s ease-out 1; }
+.crit.counted .bob svg { filter:saturate(.35) brightness(1.06); opacity:.82; }
+.badge { position:absolute; right:-6px; top:-6px; z-index:2; min-width:30px; height:30px; padding:0 6px; border-radius:999px; background:var(--yellow); border:3px solid var(--line); font:900 .95rem Verdana,sans-serif; display:grid; place-items:center; animation:pop .4s ease-out 1; pointer-events:none; }
+.controls { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center; }
+.controls .btn { font-size:1.2rem; }
+.btn.next { background:var(--mint); animation:nudge 1.6s ease-in-out infinite; }
+.answers { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.ans { min-height:84px; border-radius:24px; border:3px solid var(--line); box-shadow:0 6px 0 var(--line); cursor:pointer; font:900 2.8rem Verdana,'Segoe UI',sans-serif; }
+.ans:nth-child(1) { background:var(--peach); } .ans:nth-child(2) { background:var(--blue); } .ans:nth-child(3) { background:var(--lav); }
+.ans:active:not(:disabled) { transform:translateY(5px); box-shadow:0 1px 0 var(--line); }
+.ans.right { background:var(--mint) !important; } .ans.tried { opacity:.4; } .ans:disabled { cursor:default; }
+@media (max-height:700px) { .ans { min-height:70px; font-size:2.3rem; } .num { width:66px; height:66px; font-size:2.1rem; } .field { min-height:170px; } }
+
+/* ---------- carrot basket ---------- */
+.bgame { flex:1; min-height:0; display:flex; gap:14px; align-items:stretch; }
+.pile { position:relative; flex:4; min-height:120px; border:3px dashed var(--line); border-radius:26px; background:#fff3d6; cursor:pointer; overflow:hidden; padding:0; }
+.pile:active:not(:disabled) { background:#ffe9b8; }
+.pile:disabled { cursor:default; opacity:.7; }
+.pile .cap { position:absolute; left:0; right:0; top:8px; text-align:center; font-weight:900; font-size:.95rem; opacity:.75; pointer-events:none; }
+.heap { position:absolute; left:8px; right:8px; top:30px; bottom:6px; }
+.heap .hc { position:absolute; width:var(--cs); height:var(--cs); transform:translate(-50%,-50%) rotate(var(--r)); pointer-events:none; }
+.heap .hc svg, .bc svg { width:100%; height:100%; display:block; }
+.basket { position:relative; flex:6; align-self:flex-start; width:100%; padding:14px 14px 16px; border:3px solid var(--line); border-radius:18px 18px 30px 30px; background-color:#e0a867; background-image:repeating-linear-gradient(45deg,rgba(85,67,63,.14) 0 5px,transparent 5px 12px); box-shadow:0 6px 0 var(--line); }
+.basket::before, .basket::after { content:''; position:absolute; top:22px; width:22px; height:46px; border:3px solid var(--line); background:#e0a867; border-radius:14px; }
+.basket::before { left:-17px; } .basket::after { right:-17px; }
+.basket-in { position:relative; z-index:1; min-height:132px; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:2px; align-content:start; padding:6px; background:#f8e6bf; border:3px solid var(--line); border-radius:12px 12px 22px 22px; }
+.bc { position:relative; background:none; border:0; padding:2px; aspect-ratio:1; cursor:pointer; border-radius:12px; min-width:48px; min-height:48px; animation:pop .35s ease-out 1; }
+.bc:active { background:rgba(85,67,63,.12); }
+.basket-cap { position:absolute; left:50%; bottom:-30px; transform:translateX(-50%); font-weight:900; font-size:.95rem; opacity:.75; white-space:nowrap; }
+.basket.shake { animation:shake .5s ease-in-out 1; }
+@media (max-width:720px) { .bgame { flex-direction:column; } .pile { flex:none; height:128px; } .basket { flex:none; align-self:stretch; } .basket-in { min-height:104px; } }
+@media (max-width:720px) and (max-height:700px) { .pile { height:104px; } .basket { padding:10px 10px 12px; } .basket-in { min-height:100px; } .bc { min-width:48px; min-height:48px; } }
+
+/* ---------- end + album ---------- */
+.end { align-items:center; justify-content:center; text-align:center; }
+.end h2 { font-size:clamp(1.8rem,6vw,2.6rem); }
+.bigstars { display:flex; gap:10px; justify-content:center; }
+.bigstars svg { width:clamp(64px,16vw,96px); height:clamp(64px,16vw,96px); }
+.bigstars svg.in { animation:pop .6s ease-out both; }
+.newsticker { display:flex; flex-direction:column; align-items:center; gap:6px; font-weight:900; font-size:1.2rem; }
+.newsticker svg { width:clamp(110px,26vw,150px); height:auto; animation:pop .7s ease-out both; animation-delay:.3s; }
+.album h2 { text-align:center; font-size:clamp(1.6rem,5.5vw,2.3rem); outline:none; }
+.sgrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; max-width:620px; width:100%; margin:0 auto; }
+.slot { aspect-ratio:1; display:grid; place-items:center; border:3px dashed #a99a8e; border-radius:50%; color:#a99a8e; font:900 1.3rem Verdana,sans-serif; background:rgba(255,250,240,.6); }
+.slot.own { border:0; background:none; }
+.slot svg { width:100%; height:100%; display:block; }
+.slot.fresh svg { animation:pop .7s ease-out both; }
+@media (max-width:480px) { .sgrid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } }
+
+/* ---------- motion ---------- */
+.spark { position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px; pointer-events:none; animation:spark 1.05s ease-out forwards; }
+.spark svg { width:100%; height:100%; display:block; }
+@keyframes spark { 0% { transform:translate(0,0) scale(.2) rotate(0); opacity:0; } 18% { opacity:1; } 100% { transform:translate(var(--dx),var(--dy)) scale(1) rotate(90deg); opacity:0; } }
+@keyframes wig { 0%,100% { transform:rotate(-2.4deg); } 50% { transform:rotate(2.4deg); } }
+@keyframes hop { 0% { transform:translateY(0) scale(1,1); } 22% { transform:translateY(5%) scale(1.07,.92); } 52% { transform:translateY(-24%) scale(.96,1.07); } 80% { transform:translateY(0) scale(1.05,.95); } 100% { transform:translateY(0) scale(1,1); } }
+@keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.14); } }
+@keyframes pop { 0% { transform:scale(.3); opacity:0; } 60% { transform:scale(1.18); opacity:1; } 100% { transform:scale(1); opacity:1; } }
+@keyframes nudge { 0%,100% { transform:translateX(0); } 50% { transform:translateX(5px); } }
+@keyframes shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-6px); } 75% { transform:translateX(6px); } }
+@media (prefers-reduced-motion:reduce) {
+  .bob, .scene .sun, .btn.next { animation:none; }
+  .bob.hop { animation:pulse .5s ease-out 1; }
+  .spark { animation:sparkfade 1.05s ease-out forwards; }
+  .basket.shake { animation:pulse .4s ease-out 1; }
+  .badge, .bc, .dots .d.pop svg, .bigstars svg.in, .newsticker svg, .slot.fresh svg, .num.bump { animation:none; }
+}
+@keyframes sparkfade { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
+</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23d4f0fb%22/%3E%3Cellipse cx=%2236%22 cy=%2228%22 rx=%228%22 ry=%2220%22 fill=%22%23fff7ec%22 stroke=%22%2355433f%22 stroke-width=%224%22/%3E%3Cellipse cx=%2264%22 cy=%2228%22 rx=%228%22 ry=%2220%22 fill=%22%23fff7ec%22 stroke=%22%2355433f%22 stroke-width=%224%22/%3E%3Cellipse cx=%2250%22 cy=%2262%22 rx=%2228%22 ry=%2226%22 fill=%22%23fff7ec%22 stroke=%22%2355433f%22 stroke-width=%224%22/%3E%3Ccircle cx=%2240%22 cy=%2258%22 r=%225%22 fill=%22%2355433f%22/%3E%3Ccircle cx=%2260%22 cy=%2258%22 r=%225%22 fill=%22%2355433f%22/%3E%3C/svg%3E">
+</head>
+<body>
+<header class="topbar">
+  <a class="tb" href="index.html">&larr; Back to the arcade</a>
+  <div class="tb-title">Counting Critters</div>
+  <button class="tb" id="btnSound" type="button" aria-pressed="true">Sound: On</button>
+</header>
+
+<div class="scene" aria-hidden="true">
+  <svg class="sun" viewBox="0 0 100 100"><g stroke="#ffe08a" stroke-width="7" stroke-linecap="round"><path d="M50 6v10M50 84v10M6 50h10M84 50h10M19 19l7 7M74 74l7 7M81 19l-7 7M26 74l-7 7"/></g><circle cx="50" cy="50" r="24" fill="#ffe08a"/></svg>
+  <svg class="cloud c1" viewBox="0 0 120 60"><g fill="#fff"><circle cx="38" cy="36" r="18"/><circle cx="64" cy="28" r="23"/><circle cx="90" cy="38" r="16"/><rect x="26" y="36" width="76" height="18" rx="9"/></g></svg>
+  <svg class="cloud c2" viewBox="0 0 120 60"><g fill="#fff"><circle cx="38" cy="36" r="18"/><circle cx="64" cy="28" r="23"/><circle cx="90" cy="38" r="16"/><rect x="26" y="36" width="76" height="18" rx="9"/></g></svg>
+  <div class="hill h1"></div><div class="hill h2"></div><div class="grass"></div>
+  <svg class="flowers" preserveAspectRatio="none">
+    <defs>
+      <g id="petals"><circle cx="0" cy="-7" r="6"/><circle cx="6.7" cy="-2.2" r="6"/><circle cx="4.1" cy="5.7" r="6"/><circle cx="-4.1" cy="5.7" r="6"/><circle cx="-6.7" cy="-2.2" r="6"/><circle r="4.2" fill="#ffd84a"/></g>
+      <pattern id="flp" width="260" height="64" patternUnits="userSpaceOnUse">
+        <g stroke="#7bbf68" stroke-width="3" stroke-linecap="round"><path d="M34 64V42M104 64V34M172 64V46M226 64V38"/></g>
+        <use href="#petals" x="34" y="38" fill="#ff9fbe"/><use href="#petals" x="104" y="30" fill="#fff"/><use href="#petals" x="172" y="42" fill="#c9b3ff"/><use href="#petals" x="226" y="34" fill="#ffb783"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="64" fill="url(#flp)"/>
+  </svg>
+</div>
+
+<main id="app">
+  <!-- TITLE -->
+  <section class="screen" id="scr-title" aria-labelledby="ttl">
+    <h1 class="logo" id="ttl" tabindex="-1" data-focus><span class="l1">Counting</span> <span class="l2">Critters</span></h1>
+    <div class="parade" id="parade" aria-hidden="true"></div>
+    <div class="card levelpick" role="group" aria-label="How high do you want to count?">
+      <span class="lp-label">Count up to</span>
+      <button class="lv" type="button" data-level="5" aria-pressed="false">1-5</button>
+      <button class="lv" type="button" data-level="10" aria-pressed="true">1-10</button>
+      <button class="lv" type="button" data-level="20" aria-pressed="false">1-20</button>
+    </div>
+    <div class="acts">
+      <button class="act a-count" type="button" data-mode="count"><span class="ico" data-ico="count"></span><span class="at"><b>Count Along</b><small>Tap each critter and count with me</small><span class="st" data-st="count"></span></span></button>
+      <button class="act a-many" type="button" data-mode="many"><span class="ico" data-ico="many"></span><span class="at"><b>How Many?</b><small>Look, then pick the right number</small><span class="st" data-st="many"></span></span></button>
+      <button class="act a-basket" type="button" data-mode="basket"><span class="ico" data-ico="basket"></span><span class="at"><b>Fill the Basket</b><small>Put just the right carrots in</small><span class="st" data-st="basket"></span></span></button>
+    </div>
+    <button class="btn album-btn" id="btnAlbum" type="button">My stickers <span id="albumCount">0/12</span></button>
+  </section>
+
+  <!-- PLAY -->
+  <section class="screen" id="scr-play" aria-label="Activity" hidden>
+    <div class="playbar">
+      <button class="btn ghost" id="btnHome" type="button">&larr; Home</button>
+      <div class="dots" id="dots" role="img" aria-label="Round progress"></div>
+    </div>
+    <div class="card prompt" id="prompt" tabindex="-1">
+      <div class="txt"><span id="promptText"></span><span class="fb" id="fb" role="status" aria-live="polite"></span></div>
+      <button class="hear" id="btnHear" type="button" aria-label="Hear it again"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#43353f" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="#43353f"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+      <div class="num" id="num" aria-hidden="true">0</div>
+    </div>
+    <div class="modebody" id="modeBody"></div>
+  </section>
+
+  <!-- END OF ROUND -->
+  <section class="screen end" id="scr-end" aria-labelledby="endTitle" hidden>
+    <h2 id="endTitle" tabindex="-1" data-focus>Great counting!</h2>
+    <div class="bigstars" id="endStars" role="img" aria-label="Stars earned"></div>
+    <p id="endMsg" style="font-weight:800;font-size:1.15rem"></p>
+    <div class="newsticker" id="endSticker"></div>
+    <div class="row">
+      <button class="btn go" id="btnAgain" type="button">Play again</button>
+      <button class="btn ghost" id="btnEndHome" type="button">Home</button>
+      <button class="btn help" id="btnEndAlbum" type="button">My stickers</button>
+    </div>
+  </section>
+
+  <!-- ALBUM -->
+  <section class="screen album" id="scr-album" aria-labelledby="albTitle" hidden>
+    <h2 id="albTitle" tabindex="-1" data-focus>My stickers</h2>
+    <p id="albMsg" style="text-align:center;font-weight:800"></p>
+    <div class="sgrid" id="sgrid"></div>
+    <div class="row"><button class="btn ghost" id="btnAlbumHome" type="button">&larr; Home</button></div>
+  </section>
+</main>
+<noscript><p style="padding:2em;position:relative;z-index:2">Counting Critters needs JavaScript turned on.</p></noscript>
+<script>
+const LL = (() => {
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ac = null, muted = false;
+  try { muted = localStorage.getItem('ll.muted') === '1'; } catch (e) {}
+  function ctx() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+  function tone(freq, dur = .12, type = 'sine', vol = .15, when = 0) {
+    if (muted) return; const a = ctx(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = freq;
+    const t = a.currentTime + when; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  const sfx = {
+    tap() { tone(520, .07, 'triangle', .12); },
+    good() { [523, 659, 784].forEach((f, i) => tone(f, .16, 'sine', .14, i * .09)); },
+    again() { tone(330, .12, 'triangle', .1); tone(294, .16, 'triangle', .1, .1); },
+    win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .2, 'sine', .15, i * .11)); },
+    pop() { tone(700, .05, 'square', .06); tone(980, .07, 'sine', .08, .03); },
+  };
+  function say(text, opts = {}) {
+    if (muted || !('speechSynthesis' in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.rate = opts.rate || .9; u.pitch = opts.pitch || 1.1; u.lang = 'en-US';
+      const vs = speechSynthesis.getVoices();
+      const v = vs.find(v => /en[-_]US/i.test(v.lang) && /(Zira|Aria|Jenny|Samantha|Google US)/i.test(v.name)) || vs.find(v => /^en/i.test(v.lang));
+      if (v) u.voice = v; speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  const save = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+  function setMuted(m) { muted = m; try { localStorage.setItem('ll.muted', m ? '1' : '0'); } catch (e) {} if (m && 'speechSynthesis' in window) speechSynthesis.cancel(); }
+  return { reduceMotion, sfx, say, save, get muted() { return muted; }, setMuted, ctx };
+})();
+
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
+const LEVELS = [5, 10, 20];
+const ROUND = 5;
+const KEY = 'countingCritters.v1';
+const MODE_NAME = { count: 'Count Along', many: 'How Many?', basket: 'Fill the Basket' };
+const LINE = '#55433f';
+
+/* ================= ART: flat colors, one outline weight, drawn in code ================= */
+const svg = (inner, vb = '0 0 100 100') => '<svg viewBox="' + vb + '" fill="none" stroke="' + LINE + '" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false">' + inner + '</svg>';
+const eye = (x, y, r = 4.6) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#3b2f3a" stroke="none"/><circle cx="' + (x + r * .32).toFixed(2) + '" cy="' + (y - r * .34).toFixed(2) + '" r="' + (r * .36).toFixed(2) + '" fill="#fff" stroke="none"/>';
+const blush = (x, y, r = 4) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#ffb3c4" stroke="none"/>';
+const starPts = (cx, cy, R, r, n = 5, rot = -90) => { const s = []; for (let i = 0; i < n * 2; i++) { const a = (rot + i * 180 / n) * Math.PI / 180, rr = i % 2 ? r : R; s.push((cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1)); } return s.join(' '); };
+const spikePath = (cx, cy, R, r, n, a0, a1) => { let d = ''; const st = n * 2; for (let i = 0; i <= st; i++) { const a = (a0 + (a1 - a0) * i / st) * Math.PI / 180, rr = i % 2 ? r : R; d += (i ? 'L' : 'M') + (cx + rr * Math.cos(a)).toFixed(1) + ' ' + (cy + rr * Math.sin(a)).toFixed(1); } return d; };
+const CARROT_IN = '<path d="M50 24C42 22 36 14 38 5C46 7 51 14 50 24Z" fill="#69c25a"/><path d="M50 24C58 22 64 14 62 5C54 7 49 14 50 24Z" fill="#69c25a"/><path d="M50 24C46 16 47 8 50 2C53 8 54 16 50 24Z" fill="#82d56f"/><path d="M35 32Q35 23 50 23Q65 23 65 32Q63 62 55 90Q50 99 45 90Q37 62 35 32Z" fill="#ff9d3f"/><path d="M40 42h8M52 56h8M42 68h7" stroke-width="2.4"/>';
+const carrotSvg = rot => svg('<g transform="rotate(' + rot + ' 50 50)">' + CARROT_IN + '</g>');
+
+const CRITTERS = {
+  bunny: { one: 'bunny', many: 'bunnies', art: svg(
+    '<ellipse cx="35" cy="25" rx="8.5" ry="20" fill="#fff7ec" transform="rotate(-8 35 25)"/><ellipse cx="65" cy="25" rx="8.5" ry="20" fill="#fff7ec" transform="rotate(8 65 25)"/>' +
+    '<ellipse cx="35.5" cy="26" rx="4" ry="13.5" fill="#ffb9cc" stroke="none" transform="rotate(-8 35.5 26)"/><ellipse cx="64.5" cy="26" rx="4" ry="13.5" fill="#ffb9cc" stroke="none" transform="rotate(8 64.5 26)"/>' +
+    '<ellipse cx="50" cy="72" rx="26" ry="19" fill="#fff7ec"/><ellipse cx="31" cy="90" rx="13" ry="6.5" fill="#fff7ec"/><ellipse cx="69" cy="90" rx="13" ry="6.5" fill="#fff7ec"/>' +
+    '<ellipse cx="50" cy="51" rx="25" ry="22" fill="#fff7ec"/><ellipse cx="41" cy="79" rx="6" ry="5" fill="#fff7ec"/><ellipse cx="59" cy="79" rx="6" ry="5" fill="#fff7ec"/>' +
+    blush(32, 58) + blush(68, 58) + eye(40, 49) + eye(60, 49) +
+    '<ellipse cx="50" cy="55.5" rx="3.2" ry="2.4" fill="#ef7f9c" stroke="none"/><path d="M50 58v2.4M50 60.4q-3.4 3-6.4.4M50 60.4q3.4 3 6.4.4" stroke-width="2.2"/>') },
+  duckling: { one: 'duckling', many: 'ducklings', art: svg(
+    '<path d="M24 97L35 85L46 97Z" fill="#ffab4a"/><path d="M54 97L65 85L76 97Z" fill="#ffab4a"/>' +
+    '<ellipse cx="50" cy="66" rx="30" ry="24" fill="#ffe27a"/><ellipse cx="22" cy="68" rx="8" ry="13" fill="#ffd24f" transform="rotate(14 22 68)"/><ellipse cx="78" cy="68" rx="8" ry="13" fill="#ffd24f" transform="rotate(-14 78 68)"/>' +
+    '<circle cx="50" cy="38" r="24" fill="#ffe27a"/><path d="M49 14q-3-8 5-9"/>' +
+    blush(31, 45) + blush(69, 45) + eye(40, 35) + eye(60, 35) +
+    '<ellipse cx="50" cy="45" rx="11" ry="6" fill="#ffab4a"/><path d="M42 45h16" stroke-width="2.2"/>') },
+  ladybug: { one: 'ladybug', many: 'ladybugs', art: svg(
+    '<path d="M30 52L11 42M28 64L8 66M32 77L16 90M70 52L89 42M72 64L92 66M68 77L84 90" stroke-width="3.4"/>' +
+    '<path d="M44 22L36 10M56 22L64 10"/><circle cx="35" cy="8.5" r="3.6" fill="#3b2f3a"/><circle cx="65" cy="8.5" r="3.6" fill="#3b2f3a"/>' +
+    '<ellipse cx="50" cy="30" rx="18" ry="14" fill="#4a3d4d"/><circle cx="50" cy="63" r="31" fill="#f0626b"/><path d="M50 33V94"/>' +
+    '<g fill="#3b2f3a" stroke="none"><circle cx="36" cy="56" r="5.4"/><circle cx="64" cy="56" r="5.4"/><circle cx="33" cy="73" r="5.8"/><circle cx="67" cy="73" r="5.8"/><circle cx="42" cy="86" r="4.2"/><circle cx="58" cy="86" r="4.2"/></g>' +
+    '<circle cx="42.5" cy="27.5" r="4.8" fill="#fff" stroke="none"/><circle cx="57.5" cy="27.5" r="4.8" fill="#fff" stroke="none"/><circle cx="43.6" cy="28.4" r="2.4" fill="#3b2f3a" stroke="none"/><circle cx="56.4" cy="28.4" r="2.4" fill="#3b2f3a" stroke="none"/>') },
+  frog: { one: 'frog', many: 'frogs', art: svg(
+    '<ellipse cx="21" cy="78" rx="15" ry="12" fill="#8fd68b" transform="rotate(-18 21 78)"/><ellipse cx="79" cy="78" rx="15" ry="12" fill="#8fd68b" transform="rotate(18 79 78)"/>' +
+    '<ellipse cx="14" cy="92" rx="11" ry="5" fill="#8fd68b"/><ellipse cx="86" cy="92" rx="11" ry="5" fill="#8fd68b"/>' +
+    '<ellipse cx="50" cy="70" rx="27" ry="23" fill="#8fd68b"/><ellipse cx="50" cy="77" rx="16" ry="14" fill="#e7f8c8" stroke="none"/>' +
+    '<ellipse cx="39" cy="92" rx="9" ry="5" fill="#8fd68b"/><ellipse cx="61" cy="92" rx="9" ry="5" fill="#8fd68b"/>' +
+    '<circle cx="33" cy="34" r="12" fill="#8fd68b"/><circle cx="67" cy="34" r="12" fill="#8fd68b"/><ellipse cx="50" cy="52" rx="32" ry="20" fill="#8fd68b"/>' +
+    '<circle cx="33" cy="33" r="7.6" fill="#fff" stroke-width="2.6"/><circle cx="67" cy="33" r="7.6" fill="#fff" stroke-width="2.6"/>' +
+    '<circle cx="34" cy="34" r="4.2" fill="#3b2f3a" stroke="none"/><circle cx="66" cy="34" r="4.2" fill="#3b2f3a" stroke="none"/><circle cx="35.3" cy="32.6" r="1.5" fill="#fff" stroke="none"/><circle cx="67.3" cy="32.6" r="1.5" fill="#fff" stroke="none"/>' +
+    blush(28, 56, 4.4) + blush(72, 56, 4.4) + '<path d="M30 56Q50 72 70 56" stroke-width="2.6"/><circle cx="46" cy="48" r="1.4" fill="#3b2f3a" stroke="none"/><circle cx="54" cy="48" r="1.4" fill="#3b2f3a" stroke="none"/>') },
+  hedgehog: { one: 'hedgehog', many: 'hedgehogs', art: svg(
+    '<ellipse cx="34" cy="90" rx="9" ry="5" fill="#f6d5ae"/><ellipse cx="62" cy="90" rx="9" ry="5" fill="#f6d5ae"/>' +
+    '<path d="' + spikePath(45, 74, 41, 33, 8, 180, 360) + 'L86 74Q66 90 45 90Q24 90 4 74Z" fill="#b58a62" stroke-linejoin="round"/>' +
+    '<ellipse cx="76" cy="68" rx="17" ry="15" fill="#f6d5ae"/><circle cx="68" cy="53" r="6" fill="#f6d5ae"/>' + eye(79, 62, 4) + blush(72, 74, 3.4) +
+    '<circle cx="92" cy="69" r="4.4" fill="#3b2f3a" stroke="none"/><path d="M82 77q4 3 8 0" stroke-width="2.2"/>') },
+};
+const TYPES = Object.keys(CRITTERS);
+
+const STK = (bg, inner) => '<svg viewBox="0 0 64 64" fill="none" stroke="' + LINE + '" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="29.5" fill="' + bg + '" stroke-width="3"/>' + inner + '</svg>';
+const STICKERS = [
+  { id: 'star', name: 'Gold star', art: STK('#cfe8ff', '<polygon points="' + starPts(32, 34, 20, 8.6) + '" fill="#ffd84a"/>') },
+  { id: 'sun', name: 'Happy sun', art: STK('#ffe9b3', '<path d="M32 8v6M32 50v6M8 32h6M50 32h6M15 15l4 4M45 45l4 4M49 15l-4 4M19 45l-4 4"/><circle cx="32" cy="32" r="12" fill="#ffd84a"/>') },
+  { id: 'rainbow', name: 'Rainbow', art: STK('#d9f2ff', '<g stroke-linecap="butt" fill="none"><path d="M16 46A16 16 0 0 1 48 46" stroke-width="23"/><path d="M10 46A22 22 0 0 1 54 46" stroke="#ff7a8a" stroke-width="6"/><path d="M16 46A16 16 0 0 1 48 46" stroke="#ffd84a" stroke-width="6"/><path d="M22 46A10 10 0 0 1 42 46" stroke="#7cc4ff" stroke-width="6"/></g><circle cx="15" cy="47" r="9" fill="#fff"/><circle cx="49" cy="47" r="9" fill="#fff"/>') },
+  { id: 'carrot', name: 'Carrot', art: STK('#d6f5c8', '<g transform="translate(8 9) scale(.5)">' + CARROT_IN.replace(/stroke-width="2.4"/, 'stroke-width="3.4"') + '</g>') },
+  { id: 'daisy', name: 'Daisy', art: STK('#ffe0ec', '<g fill="#fff"><circle cx="32" cy="19" r="8"/><circle cx="44" cy="28" r="8"/><circle cx="40" cy="42" r="8"/><circle cx="24" cy="42" r="8"/><circle cx="20" cy="28" r="8"/></g><circle cx="32" cy="32" r="7.5" fill="#ffd84a"/>') },
+  { id: 'butterfly', name: 'Butterfly', art: STK('#e6dbff', '<ellipse cx="21" cy="25" rx="13" ry="10" fill="#ffb3c9" transform="rotate(-25 21 25)"/><ellipse cx="43" cy="25" rx="13" ry="10" fill="#ffb3c9" transform="rotate(25 43 25)"/><ellipse cx="23" cy="40" rx="8.5" ry="7" fill="#ff93b3" transform="rotate(20 23 40)"/><ellipse cx="41" cy="40" rx="8.5" ry="7" fill="#ff93b3" transform="rotate(-20 41 40)"/><ellipse cx="32" cy="33" rx="3.4" ry="13" fill="#4a3d4d"/><path d="M31 21Q28 13 23 12M33 21Q36 13 41 12"/>') },
+  { id: 'cloud', name: 'Fluffy cloud', art: STK('#c8e9ff', '<g fill="#fff" stroke-width="5.2"><circle cx="22" cy="38" r="9"/><circle cx="33" cy="30" r="12"/><circle cx="44" cy="37" r="10"/><rect x="18" y="36" width="35" height="12" rx="6"/></g><g fill="#fff" stroke="none"><circle cx="22" cy="38" r="9"/><circle cx="33" cy="30" r="12"/><circle cx="44" cy="37" r="10"/><rect x="18" y="36" width="35" height="12" rx="6"/></g>') },
+  { id: 'balloon', name: 'Balloon', art: STK('#fff0b8', '<ellipse cx="32" cy="27" rx="14" ry="17" fill="#ff7a8a"/><path d="M29 44l3 4 3-4z" fill="#ff7a8a"/><path d="M32 48q-4 4 0 8t0 5"/><ellipse cx="26" cy="20" rx="2.6" ry="5" fill="#fff" stroke="none" transform="rotate(20 26 20)"/>') },
+  { id: 'berry', name: 'Strawberry', art: STK('#ffd9d9', '<path d="M32 54C14 44 12 29 21 25C27 23 32 25 32 25C32 25 37 23 43 25C52 29 50 44 32 54Z" fill="#ff6b7a"/><g fill="#ffe27a" stroke="none"><ellipse cx="24" cy="33" rx="1.6" ry="2.4"/><ellipse cx="32" cy="31" rx="1.6" ry="2.4"/><ellipse cx="40" cy="33" rx="1.6" ry="2.4"/><ellipse cx="28" cy="40" rx="1.6" ry="2.4"/><ellipse cx="36" cy="40" rx="1.6" ry="2.4"/><ellipse cx="32" cy="47" rx="1.6" ry="2.4"/></g><ellipse cx="25" cy="22" rx="7" ry="3.4" fill="#69c25a" transform="rotate(-20 25 22)"/><ellipse cx="39" cy="22" rx="7" ry="3.4" fill="#69c25a" transform="rotate(20 39 22)"/><ellipse cx="32" cy="20" rx="3.4" ry="6.4" fill="#82d56f"/>') },
+  { id: 'bee', name: 'Busy bee', art: STK('#e8f6c4', '<ellipse cx="23" cy="22" rx="8" ry="11" fill="#dff1ff" transform="rotate(-25 23 22)"/><ellipse cx="41" cy="22" rx="8" ry="11" fill="#dff1ff" transform="rotate(25 41 22)"/><clipPath id="clipbee"><ellipse cx="32" cy="37" rx="18" ry="14"/></clipPath><ellipse cx="32" cy="37" rx="18" ry="14" fill="#ffd84a"/><g clip-path="url(#clipbee)" fill="#4a3d4d" stroke="none"><rect x="21" y="20" width="6" height="34"/><rect x="35" y="20" width="6" height="34"/></g><ellipse cx="32" cy="37" rx="18" ry="14"/><circle cx="26" cy="31" r="0" /><path d="M30 44q2 2 4 0" stroke-width="2"/>') },
+  { id: 'acorn', name: 'Acorn', art: STK('#ffe6c9', '<path d="M20 33C20 49 32 57 32 57C32 57 44 49 44 33Z" fill="#d9a066"/><path d="M17 33C17 20 47 20 47 33Z" fill="#8a5a3c"/><path d="M32 22V15"/><path d="M23 28l4 4M31 26l4 4M39 28l4 4" stroke-width="1.8"/>') },
+  { id: 'heart', name: 'Big heart', art: STK('#e9dcff', '<path d="M32 52C10 38 12 18 25 18C30 18 32 22 32 24C32 22 34 18 39 18C52 18 54 38 32 52Z" fill="#ff7a9a"/><ellipse cx="22" cy="26" rx="2.8" ry="4.6" fill="#fff" stroke="none" transform="rotate(35 22 26)"/>') },
+];
+const starSvg = (on, extra = '') => '<svg viewBox="0 0 40 40" class="' + extra + '" aria-hidden="true" focusable="false"><polygon points="' + starPts(20, 21, 17.5, 7.6) + '" fill="' + (on ? '#ffd84a' : '#e9e1d6') + '" stroke="' + (on ? LINE : '#b3a79b') + '" stroke-width="2.6" stroke-linejoin="round"/></svg>';
+
+const ICONS = {
+  count: svg('<g transform="translate(-4 4)"><g transform="scale(.82)">' + CRITTERS.bunny.art.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g></g><circle cx="80" cy="22" r="15" fill="#ffe58a"/><text x="80" y="29" font-size="20" font-weight="900" text-anchor="middle" fill="#43353f" stroke="none" font-family="Verdana,sans-serif">1</text>'),
+  many: svg('<circle cx="50" cy="50" r="40" fill="#fff"/><text x="50" y="71" font-size="62" font-weight="900" text-anchor="middle" fill="#ff8aa6" stroke="none" font-family="Verdana,sans-serif">?</text><circle cx="23" cy="26" r="5" fill="#8fd68b"/><circle cx="77" cy="26" r="5" fill="#8fd68b"/><circle cx="50" cy="12" r="0"/>'),
+  basket: svg('<g transform="translate(22 -6) scale(.52)">' + CARROT_IN + '</g><g transform="translate(34 -2) scale(.52) rotate(18 50 50)">' + CARROT_IN + '</g><path d="M13 52H87L79 90Q78 94 73 94H27Q22 94 21 90Z" fill="#e0a867"/><rect x="9" y="46" width="82" height="12" rx="6" fill="#f0c58a"/><path d="M26 70H74M28 82H72M40 60V92M60 60V92" stroke-width="2.2"/>'),
+};
+/* ================= save ================= */
+function loadData() {
+  const d = { stars: {}, stickers: [], settings: { level: 10 }, rounds: 0 };
+  const raw = LL.save.get(KEY, null);
+  if (raw && typeof raw === 'object') {
+    if (raw.stars && typeof raw.stars === 'object') for (const k in raw.stars) { const v = +raw.stars[k]; if (v >= 1 && v <= 3) d.stars[k] = v | 0; }
+    if (Array.isArray(raw.stickers)) d.stickers = raw.stickers.filter((id, i, a) => STICKERS.some(s => s.id === id) && a.indexOf(id) === i);
+    if (raw.settings && LEVELS.includes(raw.settings.level)) d.settings.level = raw.settings.level;
+    d.rounds = Math.max(0, +raw.rounds || 0);
+  }
+  return d;
+}
+let data = loadData();
+const persist = () => LL.save.set(KEY, data);
+
+/* ================= state ================= */
+const S = { screen: 'title', mode: null, level: data.settings.level, q: 0, plan: [], target: 0, type: 'bunny', hints: 0, solved: false, busy: false, items: [], counted: 0, basket: 0, pile: 0, stars: 0, newSticker: null, answers: [], layoutKind: 'scatter', seed: 1, spoken: '' };
+let autoTok = 0;
+const scr = { title: $('#scr-title'), play: $('#scr-play'), end: $('#scr-end'), album: $('#scr-album') };
+const mb = $('#modeBody');
+const alive = async (tok, ms) => { await sleep(ms); return tok === autoTok; };
+const normLevel = l => { l = +l; if (LEVELS.includes(l)) return l; if (l >= 1 && l <= 3) return LEVELS[l - 1]; return l > 10 ? 20 : l > 5 ? 10 : 5; };
+const nounOf = n => (n === 1 ? CRITTERS[S.type].one : CRITTERS[S.type].many);
+
+function show(name) {
+  S.screen = name;
+  for (const k in scr) scr[k].hidden = k !== name;
+  const f = scr[name].querySelector('[data-focus]'); if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} }
+  scr[name].scrollTop = 0;
+}
+const btnSound = $('#btnSound');
+function syncSound() { btnSound.textContent = 'Sound: ' + (LL.muted ? 'Off' : 'On'); btnSound.setAttribute('aria-pressed', LL.muted ? 'false' : 'true'); }
+btnSound.addEventListener('click', () => { LL.setMuted(!LL.muted); syncSound(); if (!LL.muted) LL.sfx.tap(); });
+syncSound();
+
+/* ================= helpers ================= */
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const shuffle = (a, r = Math.random) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const DICE = { 1: [[1,1]], 2: [[0,0],[2,2]], 3: [[0,0],[1,1],[2,2]], 4: [[0,0],[2,0],[0,2],[2,2]], 5: [[0,0],[2,0],[1,1],[0,2],[2,2]], 6: [[0,0],[2,0],[0,1],[2,1],[0,2],[2,2]] };
+
+function computeLayout(kind, n, W, H, seed) {
+  const pad = 12, w = W - pad * 2, h = H - pad * 2, r = rng(seed), pts = [];
+  let size;
+  if (kind === 'dice' && n <= 6) {
+    const cell = Math.min(w, h) / 3; size = Math.min(112, cell * .9);
+    for (const [cx, cy] of DICE[n]) pts.push({ x: W / 2 + (cx - 1) * cell * (w > h * 1.5 ? 1.35 : 1), y: H / 2 + (cy - 1) * cell });
+  } else if (kind === 'rows' || kind === 'dice') {
+    const rows = Math.ceil(n / 5), cell = Math.min(w / 5, h / rows); size = Math.min(104, cell * .9);
+    for (let i = 0; i < n; i++) { const row = Math.floor(i / 5), cnt = Math.min(5, n - row * 5), col = i % 5; pts.push({ x: W / 2 + (col - (cnt - 1) / 2) * cell, y: H / 2 + (row - (rows - 1) / 2) * cell }); }
+  } else {
+    let extra = n <= 5 ? 4 : n <= 10 ? 3 : n <= 15 ? 2 : 0, best;
+    for (;; extra--) {
+      const total = n + Math.max(extra, 0); best = null;
+      for (let cols = 1; cols <= total; cols++) { const rows = Math.ceil(total / cols), s = Math.min(w / cols, h / rows); if (!best || s > best.s) best = { cols, rows, s }; }
+      size = Math.min(104, best.s * .9);
+      if (size >= 50 || extra <= 0) break;
+    }
+    const cols = best.cols, rows = best.rows, cw = w / cols, ch = h / rows;
+    const cells = shuffle(Array.from({ length: cols * rows }, (_, i) => i), r).slice(0, n).sort((a, b) => a - b);
+    for (const c of cells) { const col = c % cols, row = Math.floor(c / cols); pts.push({ x: pad + (col + .5) * cw + (r() - .5) * Math.max(0, cw - size) * .85, y: pad + (row + .5) * ch + (r() - .5) * Math.max(0, ch - size) * .85 }); }
+  }
+  return { size: Math.max(48, size), pts };
+}
+function placeAll() {
+  const f = $('#field'); if (!f || !S.items.length) return;
+  const W = f.clientWidth, H = f.clientHeight; if (W < 40 || H < 40) return;
+  const L = computeLayout(S.layoutKind, S.items.length, W, H, S.seed);
+  S.items.forEach((it, i) => { const st = it.el.style; st.left = L.pts[i].x.toFixed(1) + 'px'; st.top = L.pts[i].y.toFixed(1) + 'px'; st.width = st.height = L.size.toFixed(1) + 'px'; });
+}
+function makeCritter(i, interactive) {
+  const c = CRITTERS[S.type];
+  const el = document.createElement(interactive ? 'button' : 'div');
+  el.className = 'crit'; el.dataset.i = i;
+  if (interactive) { el.type = 'button'; el.setAttribute('aria-label', c.one + ', tap to count'); }
+  el.innerHTML = '<span class="bob" style="--d:' + (-(Math.random() * 3.4)).toFixed(2) + 's">' + c.art + '</span>';
+  return { el, bob: el.firstChild, badge: null, counted: false };
+}
+function hop(el) { el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
+mb.addEventListener('animationend', e => { if (e.target.classList && e.target.classList.contains('bob')) e.target.classList.remove('hop'); });
+
+function setNum(n, visible = true) { const e = $('#num'); e.textContent = n; e.hidden = !visible; e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); }
+function setPrompt(shown, spoken) { $('#promptText').textContent = shown; S.spoken = spoken || shown; $('#fb').textContent = ''; LL.say(S.spoken); }
+function fb(msg, spoken) { $('#fb').textContent = msg; if (spoken !== false) LL.say(spoken || msg); }
+function renderDots(popIdx = -1) {
+  const done = S.q + (S.solved ? 1 : 0);
+  $('#dots').innerHTML = Array.from({ length: ROUND }, (_, i) => '<span class="d' + (i === S.q && !S.solved ? ' cur' : '') + (i === popIdx ? ' pop' : '') + '">' + starSvg(i < done) + '</span>').join('');
+  $('#dots').setAttribute('aria-label', 'Round progress: ' + done + ' of ' + ROUND + ' done');
+}
+function sparkle(host) {
+  host = host || $('#fxLayer'); if (!host) return;
+  const w = host.clientWidth, h = host.clientHeight, n = LL.reduceMotion ? 8 : 18, cols = ['#ffd84a', '#ff9fbe', '#9ad9ff', '#b9f0a8', '#d3b8ff'];
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('i'); s.className = 'spark';
+    const a = Math.random() * 6.283, d = 50 + Math.random() * 110;
+    s.style.left = (w * (.15 + Math.random() * .7)).toFixed(0) + 'px'; s.style.top = (h * (.15 + Math.random() * .6)).toFixed(0) + 'px';
+    s.style.setProperty('--dx', (Math.cos(a) * d).toFixed(0) + 'px'); s.style.setProperty('--dy', (Math.sin(a) * d - 20).toFixed(0) + 'px');
+    s.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><polygon points="' + starPts(20, 21, 18, 7.5) + '" fill="' + cols[i % cols.length] + '" stroke="' + LINE + '" stroke-width="2.4" stroke-linejoin="round"/></svg>';
+    host.appendChild(s); setTimeout(() => s.remove(), 1250);
+  }
+}
+function showNext() {
+  const b = $('#btnNext'); if (b) { b.hidden = false; b.innerHTML = S.q + 1 >= ROUND ? 'Finish &#9654;' : 'Next &#9654;'; }
+  for (const id of ['#btnHelp', '#btnCheck']) { const x = $(id); if (x) x.hidden = true; }
+}
+function setLocked(on) {
+  $$('.ans', mb).forEach(b => { if (!b.classList.contains('tried') && !b.classList.contains('right')) b.disabled = on; });
+  const h = $('#btnHelp'); if (h) h.disabled = on;
+}
+
+/* ================= round flow ================= */
+function makePlan(level) {
+  const lo = level === 5 ? 1 : level === 10 ? 2 : 5, pool = [];
+  for (let i = lo; i <= level; i++) pool.push(i);
+  let last = '';
+  return shuffle(pool).slice(0, ROUND).map(n => { let t; do { t = pick(TYPES); } while (t === last); last = t; return { n, type: t }; });
+}
+const validPlan = p => Array.isArray(p) && p.length === ROUND && p.every(x => x && x.n >= 1 && x.n <= 20 && TYPES.includes(x.type));
+function startRound(mode, level, plan) {
+  mode = MODE_NAME[mode] ? mode : 'count'; level = normLevel(level);
+  autoTok++;
+  Object.assign(S, { mode, level, q: 0, hints: 0, plan: validPlan(plan) ? plan.slice(0, ROUND) : makePlan(level), solved: false, busy: false, stars: 0, newSticker: null });
+  data.settings.level = level; persist();
+  show('play');
+  startQuestion();
+  return true;
+}
+function startQuestion() {
+  const p = S.plan[S.q];
+  autoTok++;
+  Object.assign(S, { target: p.n, type: p.type, solved: false, busy: false, counted: 0, items: [], basket: 0, pile: 0, answers: [], seed: (Math.random() * 1e9) | 0 });
+  renderDots();
+  if (S.mode === 'count') qCount(); else if (S.mode === 'many') qMany(); else qBasket();
+  try { $('#prompt').focus({ preventScroll: true }); } catch (e) {}
+}
+function next() {
+  if (S.screen !== 'play' || !S.solved) return false;
+  if (S.q + 1 >= ROUND) finishRound(); else { S.q++; startQuestion(); }
+  return true;
+}
+function finishRound() {
+  autoTok++;
+  const stars = S.hints === 0 ? 3 : S.hints <= 2 ? 2 : 1, key = S.mode + '-' + S.level;
+  data.stars[key] = Math.max(data.stars[key] || 0, stars);
+  data.rounds++;
+  const fresh = STICKERS.find(s => !data.stickers.includes(s.id));
+  S.newSticker = fresh ? fresh.id : null; if (fresh) data.stickers.push(fresh.id);
+  S.stars = stars; persist();
+  $('#endStars').innerHTML = [1, 2, 3].map(i => starSvg(i <= stars, 'in').replace('<svg ', '<svg style="animation-delay:' + (i * .25).toFixed(2) + 's" ')).join('');
+  $('#endStars').setAttribute('aria-label', stars + ' of 3 stars');
+  const msg = stars === 3 ? 'Three stars! You counted it all yourself!' : stars === 2 ? 'Two stars! Great counting!' : 'One star! Every count makes you stronger!';
+  $('#endMsg').textContent = msg;
+  $('#endSticker').innerHTML = fresh ? '<span>New sticker: ' + fresh.name + '!</span>' + fresh.art : '<span>Your sticker album is full. Wow!</span>';
+  show('end'); LL.sfx.win(); LL.say(msg + (fresh ? ' You won a ' + fresh.name + ' sticker!' : ''));
+}
+
+/* ================= count along ================= */
+function qCount() {
+  const c = CRITTERS[S.type];
+  mb.innerHTML = '<div class="fx" id="fxLayer"></div><div class="field" id="field"></div><div class="controls"><button class="btn help" id="btnHelp" type="button">Count with me</button><button class="btn next" id="btnNext" type="button" hidden>Next</button></div>';
+  setPrompt('Count the ' + c.many + '! Tap each one.');
+  S.layoutKind = 'scatter';
+  const f = $('#field');
+  S.items = Array.from({ length: S.target }, (_, i) => makeCritter(i, true));
+  S.items.forEach(it => f.appendChild(it.el));
+  setNum(0); placeAll();
+}
+function markCounted(it, speak) {
+  if (it.counted) return;
+  it.counted = true; S.counted++;
+  it.el.classList.add('counted');
+  if (!it.badge) { it.badge = document.createElement('span'); it.badge.className = 'badge'; it.el.appendChild(it.badge); }
+  it.badge.textContent = S.counted;
+  if (it.el.tagName === 'BUTTON') it.el.setAttribute('aria-label', CRITTERS[S.type].one + ', counted as ' + WORDS[S.counted]);
+  hop(it.bob); setNum(S.counted); LL.sfx.pop();
+  if (speak) LL.say(WORDS[S.counted]);
+}
+function tapCritter(it) {
+  if (S.screen !== 'play' || S.mode !== 'count' || S.solved || !it) return 'ignored';
+  if (S.busy) { autoTok++; S.busy = false; setLocked(false); }
+  if (it.counted) { LL.sfx.tap(); hop(it.bob); fb('We counted that one! Find one with no number.'); return 'dup'; }
+  const last = S.counted + 1 === S.target;
+  markCounted(it, !last);
+  if (last) finishGroup();
+  return 'counted';
+}
+function finishGroup() {
+  S.solved = true; S.busy = false; autoTok++;
+  fb(S.target + ' ' + nounOf(S.target) + '!', WORDS[S.target] + ' ' + nounOf(S.target) + '!');
+  LL.sfx.good(); sparkle(); renderDots(S.q); showNext();
+}
+async function demoCount(intro) {
+  const tok = ++autoTok; S.busy = true; setLocked(true);
+  fb(intro);
+  if (!(await alive(tok, 1500))) return false;
+  for (const it of S.items) {
+    if (it.counted) continue;
+    markCounted(it, true);
+    if (!(await alive(tok, 820))) return false;
+  }
+  S.busy = false; setLocked(false);
+  return true;
+}
+async function helpCount() {
+  if (S.screen !== 'play' || S.mode !== 'count' || S.solved || S.busy) return false;
+  S.hints++;
+  if (!(await demoCount("Let's count together!"))) return false;
+  finishGroup(); return true;
+}
+
+/* ================= how many ================= */
+function makeChoices(n) {
+  const ds = shuffle([n - 2, n - 1, n + 1, n + 2].filter(v => v >= 1)).slice(0, 2);
+  return shuffle([n, ...ds]);
+}
+function qMany() {
+  const c = CRITTERS[S.type];
+  mb.innerHTML = '<div class="fx" id="fxLayer"></div><div class="field" id="field"></div><div class="answers" id="answers"></div><div class="controls"><button class="btn help" id="btnHelp" type="button">Count with me</button><button class="btn next" id="btnNext" type="button" hidden>Next</button></div>';
+  setPrompt('How many ' + c.many + '?');
+  S.layoutKind = S.target <= 6 ? 'dice' : (S.target <= 10 || Math.random() < .5) ? 'rows' : 'scatter';
+  const f = $('#field');
+  S.items = Array.from({ length: S.target }, (_, i) => makeCritter(i, false));
+  S.items.forEach(it => f.appendChild(it.el));
+  S.answers = makeChoices(S.target);
+  $('#answers').innerHTML = S.answers.map((v, i) => '<button class="ans" type="button" data-ans="' + i + '" aria-label="' + WORDS[v] + '">' + v + '</button>').join('');
+  setNum(0, false); placeAll();
+}
+function choose(i) {
+  if (S.screen !== 'play' || S.mode !== 'many' || S.solved || S.busy) return 'ignored';
+  const b = $$('.ans', mb)[i]; if (!b || b.disabled) return 'ignored';
+  LL.sfx.tap();
+  if (S.answers[i] === S.target) { solveMany(b); return 'right'; }
+  wrongMany(b); return 'wrong';
+}
+function solveMany(b) {
+  S.solved = true; S.busy = false; autoTok++;
+  b.classList.add('right'); $$('.ans', mb).forEach(x => { x.disabled = true; });
+  setNum(S.target);
+  fb('Yes! ' + S.target + ' ' + nounOf(S.target) + '!', 'Yes! ' + WORDS[S.target] + ' ' + nounOf(S.target) + '!');
+  LL.sfx.good(); sparkle(); renderDots(S.q); showNext();
+}
+async function wrongMany(b) {
+  b.classList.add('tried'); b.disabled = true; S.hints++; LL.sfx.again();
+  setNum(0, true);
+  if (!(await demoCount("Let's count together!"))) return;
+  const m = 'That is ' + S.target + ' ' + nounOf(S.target) + '. Now pick the number!';
+  fb(m, 'That is ' + WORDS[S.target] + ' ' + nounOf(S.target) + '. Now pick the number!');
+}
+async function helpMany() {
+  if (S.screen !== 'play' || S.mode !== 'many' || S.solved || S.busy) return false;
+  S.hints++; setNum(0, true);
+  if (!(await demoCount("Let's count together!"))) return false;
+  fb('That is ' + S.target + ' ' + nounOf(S.target) + '. Now pick the number!', 'That is ' + WORDS[S.target] + ' ' + nounOf(S.target) + '. Now pick the number!');
+  return true;
+}
+
+/* ================= fill the basket ================= */
+const CARROT_SVG = carrotSvg(38);
+const HEAP_ROWS = [8, 7, 6, 5, 4, 3, 2, 1];
+function qBasket() {
+  mb.innerHTML = '<div class="fx" id="fxLayer"></div><div class="bgame"><button class="pile" id="pile" type="button" aria-label="Pile of carrots. Tap to put one carrot in the basket."><span class="cap">Carrot pile</span><span class="heap" id="heap"></span></button><div class="basket" id="basket"><div class="basket-in" id="basketIn"></div></div></div><div class="controls"><button class="btn go" id="btnCheck" type="button">Check</button><button class="btn next" id="btnNext" type="button" hidden>Next</button></div>';
+  S.pile = Math.min(23, S.target + 3); S.basket = 0;
+  const w = S.target === 1 ? ' carrot' : ' carrots';
+  setPrompt('Put ' + S.target + w + ' in the basket.', 'Put ' + WORDS[S.target] + w + ' in the basket.');
+  setNum(0); renderBasket();
+}
+function renderBasket() {
+  const h = $('#heap'); if (!h) return;
+  const W = h.clientWidth, H = h.clientHeight, cs = Math.max(30, Math.min(56, W / 8.6, H / 2.6)), out = []; let idx = 0;
+  for (let r = 0; r < HEAP_ROWS.length && idx < S.pile; r++) for (let i = 0; i < HEAP_ROWS[r] && idx < S.pile; i++, idx++) {
+    const x = W / 2 + (i - (HEAP_ROWS[r] - 1) / 2) * cs * .98, y = H - cs / 2 - 1 - r * cs * .55;
+    out.push('<span class="hc" style="left:' + x.toFixed(0) + 'px;top:' + y.toFixed(0) + 'px;--cs:' + cs.toFixed(0) + 'px;--r:' + (((idx * 47) % 41) - 20) + 'deg">' + CARROT_SVG + '</span>');
+  }
+  h.innerHTML = out.join('');
+  const p = $('#pile'); p.disabled = S.pile <= 0 || S.solved;
+  $('#basketIn').innerHTML = Array.from({ length: S.basket }, (_, i) => '<button class="bc" type="button" data-i="' + i + '" aria-label="Carrot in the basket. Tap to take it out.">' + CARROT_SVG + '</button>').join('');
+}
+function basketAdd() {
+  if (S.screen !== 'play' || S.mode !== 'basket' || S.solved) return 'ignored';
+  if (S.pile <= 0) { fb('No more carrots in the pile!'); return 'empty'; }
+  S.pile--; S.basket++; renderBasket(); setNum(S.basket); LL.sfx.pop(); LL.say(WORDS[S.basket]); $('#fb').textContent = '';
+  return 'added';
+}
+function basketTake() {
+  if (S.screen !== 'play' || S.mode !== 'basket' || S.solved || S.basket <= 0) return 'ignored';
+  const kb = document.activeElement && document.activeElement.classList.contains('bc');
+  S.pile++; S.basket--; renderBasket(); setNum(S.basket); LL.sfx.tap(); LL.say(S.basket ? WORDS[S.basket] : 'none'); $('#fb').textContent = '';
+  if (kb) { const bcs = $$('.bc', mb); (bcs[bcs.length - 1] || $('#pile')).focus(); }
+  return 'taken';
+}
+function basketCheck() {
+  if (S.screen !== 'play' || S.mode !== 'basket' || S.solved) return 'ignored';
+  const d = S.basket - S.target;
+  if (d === 0) {
+    S.solved = true; autoTok++; renderBasket();
+    fb('Yes! ' + S.target + (S.target === 1 ? ' carrot!' : ' carrots!'), 'Yes! ' + WORDS[S.target] + (S.target === 1 ? ' carrot!' : ' carrots!'));
+    LL.sfx.good(); sparkle(); renderDots(S.q); showNext(); return 'right';
+  }
+  S.hints++; LL.sfx.again();
+  const msg = S.basket === 0 ? 'The basket is empty. Tap the pile to add carrots!' : d === -1 ? 'One more!' : d < 0 ? 'A few more! Keep going.' : d === 1 ? "That's too many. Take one out." : "That's too many. Take some out.";
+  fb(msg);
+  const b = $('#basket'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+  return 'wrong';
+}
+
+/* ================= screens + events ================= */
+function refreshTitle() {
+  $$('.lv').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.level === S.level)));
+  for (const m of Object.keys(MODE_NAME)) {
+    const n = data.stars[m + '-' + S.level] || 0, el = $('[data-st="' + m + '"]');
+    el.innerHTML = [1, 2, 3].map(i => starSvg(i <= n)).join(''); el.setAttribute('role', 'img'); el.setAttribute('aria-label', n + ' of 3 stars at this level');
+  }
+  $('#albumCount').textContent = data.stickers.length + '/' + STICKERS.length;
+}
+function buildAlbum(fresh) {
+  $('#sgrid').innerHTML = STICKERS.map((s, i) => data.stickers.includes(s.id)
+    ? '<div class="slot own' + (s.id === fresh ? ' fresh' : '') + '" role="img" aria-label="' + s.name + ' sticker">' + s.art + '</div>'
+    : '<div class="slot" role="img" aria-label="Empty sticker spot ' + (i + 1) + '">' + (i + 1) + '</div>').join('');
+  $('#albMsg').textContent = data.stickers.length >= STICKERS.length ? 'The album is full. Amazing counting!' : data.stickers.length + ' of ' + STICKERS.length + ' stickers. Finish a round to win another!';
+}
+function goHome() { autoTok++; S.busy = false; try { speechSynthesis.cancel(); } catch (e) {} refreshTitle(); show('title'); }
+
+$('#parade').innerHTML = ['bunny', 'duckling', 'ladybug', 'frog', 'hedgehog'].map((t, i) => '<span class="pc"><span class="bob" style="--d:' + (-i * .7).toFixed(1) + 's">' + CRITTERS[t].art + '</span></span>').join('');
+$$('[data-ico]').forEach(e => { e.innerHTML = ICONS[e.dataset.ico]; });
+
+scr.title.addEventListener('click', e => {
+  const lv = e.target.closest('.lv');
+  if (lv) { LL.sfx.tap(); S.level = +lv.dataset.level; data.settings.level = S.level; persist(); refreshTitle(); return; }
+  const act = e.target.closest('.act'); if (act) { startRound(act.dataset.mode, S.level); return; }
+  if (e.target.closest('#btnAlbum')) { buildAlbum(); show('album'); }
+});
+$('#btnHome').addEventListener('click', goHome);
+$('#btnEndHome').addEventListener('click', goHome);
+$('#btnAlbumHome').addEventListener('click', goHome);
+$('#btnAgain').addEventListener('click', () => startRound(S.mode, S.level));
+$('#btnEndAlbum').addEventListener('click', () => { buildAlbum(S.newSticker); show('album'); });
+$('#btnHear').addEventListener('click', () => { LL.sfx.tap(); LL.say(S.spoken); });
+mb.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.classList.contains('crit')) tapCritter(S.items[+b.dataset.i]);
+  else if (b.dataset.ans != null) choose(+b.dataset.ans);
+  else if (b.id === 'btnHelp') { LL.sfx.tap(); S.mode === 'many' ? helpMany() : helpCount(); }
+  else if (b.id === 'btnNext') { LL.sfx.tap(); next(); }
+  else if (b.id === 'pile') basketAdd();
+  else if (b.classList.contains('bc')) basketTake();
+  else if (b.id === 'btnCheck') basketCheck();
+});
+document.addEventListener('pointerdown', () => LL.ctx(), { once: true, capture: true });
+document.addEventListener('keydown', e => {
+  LL.ctx();
+  if (S.screen !== 'play' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (S.mode === 'many' && /^[1-3]$/.test(e.key) && !e.repeat) { choose(+e.key - 1); return; }
+  const idle = document.activeElement === document.body || document.activeElement === $('#prompt');
+  if (S.mode === 'count' && idle && (e.key === ' ' || e.key === 'Enter') && !S.solved) { const it = S.items.find(x => !x.counted); if (it) { e.preventDefault(); tapCritter(it); } }
+});
+window.addEventListener('resize', () => { if (S.screen === 'play') { placeAll(); if (S.mode === 'basket') renderBasket(); } });
+
+/* ================= test hook (?debug) ================= */
+function answerCorrect() {
+  if (S.screen !== 'play') return false;
+  if (S.solved) return next();
+  autoTok++; S.busy = false; setLocked(false);
+  if (S.mode === 'count') { for (const it of S.items) if (!it.counted) tapCritter(it); }
+  else if (S.mode === 'many') { const bs = $$('.ans', mb), i = S.answers.indexOf(S.target); bs[i].disabled = false; bs[i].classList.remove('tried'); choose(i); }
+  else { while (S.basket < S.target && S.pile > 0) basketAdd(); while (S.basket > S.target) basketTake(); basketCheck(); }
+  return S.solved ? next() : false;
+}
+function answerWrong() {
+  if (S.screen !== 'play' || S.solved) return false;
+  if (S.mode === 'count') { let it = S.items.find(x => x.counted); if (!it) { tapCritter(S.items[0]); it = S.items[0]; } return !S.solved && tapCritter(it) === 'dup'; }
+  if (S.mode === 'many') { if (S.busy) return false; const bs = $$('.ans', mb), i = S.answers.findIndex((v, k) => v !== S.target && !bs[k].disabled); return i >= 0 && choose(i) === 'wrong'; }
+  const want = S.target + 1;
+  while (S.basket < want && S.pile > 0) basketAdd(); while (S.basket > want) basketTake();
+  return basketCheck() === 'wrong';
+}
+if (/[?&]debug\b/.test(location.search)) {
+  window.__counting = {
+    state: S, startRound, answerCorrect, answerWrong, roundsDone: () => data.rounds, data: () => data, next,
+    startLevel: n => startRound('count', n), solve: answerCorrect, answer: ok => (ok ? answerCorrect() : answerWrong()),
+  };
+}
+
+refreshTitle(); show('title');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Clock Tower</title>
+<meta name="description" content="Learn to tell time: set the tower clock and read it so the cuckoo bird can pop out and cheer.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23cdeaf7%22/%3E%3Ccircle cx=%2250%22 cy=%2252%22 r=%2236%22 fill=%22%23fffaf0%22 stroke=%22%232f2a4a%22 stroke-width=%228%22/%3E%3Cpath d=%22M50 52V30M50 52L66 61%22 stroke=%22%232f2a4a%22 stroke-width=%229%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<style>
+:root{--paper:#fdf3dc;--card:#fffaf0;--ink:#2f2a4a;--muted:#655d80;--gold:#f2b84b;--teal:#52c2b2;--red:#d9604c;--hour:#e8743b;--min:#2a7fba;--ok:#3fae6a;--soft:#f6e6bd}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--paper)}
+body{min-height:100vh;color:var(--ink);font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;font-size:17px;line-height:1.35;background:var(--paper);-webkit-text-size-adjust:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.hidden{display:none !important}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:1180px;margin:0 auto;padding:10px 12px 6px}
+.tb{font:inherit;font-size:15px;font-weight:800;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:999px;padding:0 16px;min-height:48px;display:inline-flex;align-items:center;cursor:pointer;text-decoration:none;white-space:nowrap;box-shadow:0 3px 0 var(--ink)}
+.tb:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+:focus-visible{outline:4px solid #1d6bd6;outline-offset:3px}
+.wrap{max-width:1180px;margin:0 auto;padding:6px 12px 30px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.stage{width:min(100%,calc((100vh - 104px)*.909));min-width:260px;margin:0 auto;border:4px solid var(--ink);border-radius:24px;overflow:hidden;background:#cdeaf7;box-shadow:0 5px 0 var(--ink)}
+#tower{display:block;width:100%;height:auto}
+.panel{background:var(--card);border:4px solid var(--ink);border-radius:24px;padding:16px 18px 18px;box-shadow:0 5px 0 var(--ink)}
+h1{font-size:2.2rem;line-height:1.05;letter-spacing:.01em}
+h1 span{color:var(--red)}
+h2{font-size:1.6rem;line-height:1.1}
+.lede{color:var(--muted);margin:6px 0 14px}
+.small{color:var(--muted);font-size:.85rem;margin-top:10px}
+.seg{display:flex;gap:6px;background:var(--soft);border:3px solid var(--ink);border-radius:999px;padding:4px}
+.seg button{flex:1;min-height:48px;font:inherit;font-weight:800;color:var(--ink);background:transparent;border:0;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--gold);box-shadow:inset 0 0 0 3px var(--ink)}
+.modehelp{margin:10px 2px 0;color:var(--muted);font-size:.95rem}
+.levels{display:grid;gap:10px;margin:14px 0 8px;list-style:none}
+.lvl{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;padding:8px 14px;font:inherit;text-align:left;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:16px;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.lvl:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.lvl .n{flex:none;width:40px;height:40px;border-radius:50%;background:var(--gold);border:3px solid var(--ink);display:grid;place-items:center;font-weight:900}
+.lvl .t{flex:1;min-width:0}
+.lvl .t b{display:block}
+.lvl .t small{color:var(--muted)}
+.stars{color:var(--gold);-webkit-text-stroke:1.3px var(--ink);letter-spacing:.06em;font-size:1.35rem;white-space:nowrap}
+.stars i{font-style:normal;color:#eadfc4}
+.chk{display:flex;align-items:center;gap:10px;min-height:48px;margin-top:6px;cursor:pointer;font-weight:700}
+.chk input{width:28px;height:28px;accent-color:var(--ink);flex:none}
+.prog{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:.9rem;color:var(--muted);font-weight:800}
+.dots{display:flex;gap:5px;list-style:none}
+.dots li{width:14px;height:14px;border-radius:50%;border:3px solid var(--ink);background:#fff}
+.dots li.cur{background:var(--gold)}
+.dots li.done{background:var(--ok)}
+.kick{font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:.82rem}
+.digital{display:inline-block;margin:6px 0 2px;padding:2px 20px 6px;border-radius:18px;border:3px solid var(--ink);background:var(--ink);color:#ffe9a8;font-weight:900;font-size:clamp(2.6rem,12vw,4rem);line-height:1.15;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.caption{font-weight:800;color:var(--muted);font-size:1.05rem;min-height:1.4em}
+.caption:empty{display:none}
+.ctls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.ctl{background:var(--soft);border:3px solid var(--ink);border-radius:16px;padding:8px 10px 10px}
+.ctl h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ctl.hr{background:#ffe3d1}
+.ctl.mn{background:#d6eafa}
+.pair{display:flex;gap:8px;margin-top:6px}
+.step{flex:1;min-width:48px;min-height:52px;font:inherit;font-weight:900;font-size:1.15rem;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:14px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.step:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn{font:inherit;font-weight:900;font-size:1.1rem;min-height:52px;padding:0 22px;border:3px solid var(--ink);border-radius:999px;cursor:pointer;background:var(--gold);color:var(--ink);box-shadow:0 4px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.big{width:100%;min-height:58px;font-size:1.25rem}
+.btn.alt{background:var(--teal)}
+.btn.ghost{background:#fff}
+.btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:0 4px 0 var(--ink)}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.opt{min-height:72px;font:inherit;font-weight:900;font-size:clamp(1.3rem,6vw,1.85rem);font-variant-numeric:tabular-nums;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:16px;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.opt:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.opt.ok{background:#bfe9cc}
+.opt.no{background:#efe3c6;color:#8a8199;box-shadow:none;cursor:default;transform:none}
+.opts.done .opt:not(.ok){opacity:.55;cursor:default;box-shadow:none;transform:none}
+.msg{margin:10px 0 4px;padding:10px 12px;border-radius:14px;background:#fff0c2;border:3px solid var(--ink);font-weight:700}
+.msg.good{background:#d3f0dc}
+.msg:empty{display:none}
+.msg .more{display:block;margin-top:4px;font-weight:600;font-size:.95rem}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.bigstars{font-size:3.6rem;line-height:1;color:var(--gold);-webkit-text-stroke:2px var(--ink);letter-spacing:.08em;margin:8px 0}
+.bigstars i{font-style:normal;color:#eadfc4}
+.badge{display:inline-block;background:var(--red);color:#fff;border:3px solid var(--ink);border-radius:999px;padding:0 14px;font-weight:900;font-size:.9rem}
+#tower text{font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;font-weight:800;fill:var(--ink);text-anchor:middle}
+#nums{font-size:27px}
+#minNums{font-size:12px;opacity:0;transition:opacity .3s}
+#minNums text{fill:var(--muted);font-weight:700}
+#tower.helper #minNums,#tower.hinting #minNums{opacity:1}
+#ticks line{stroke:var(--ink);stroke-linecap:round}
+#tower .hand .ol{stroke:var(--ink);stroke-linecap:round}
+#tower .hand .fl{stroke-linecap:round}
+#hourHand .fl{stroke:var(--hour)}
+#minHand .fl{stroke:var(--min)}
+#tower .ghost{opacity:0;pointer-events:none;transition:opacity .25s}
+#tower .ghost.on{opacity:1}
+#tower .halo{stroke:#ffe45e;stroke-linecap:round}
+#tower .ghost.on .halo{animation:glow 1.8s ease-in-out infinite}
+#ghostHour .gh{stroke:var(--hour);stroke-linecap:round;opacity:.6}
+#ghostMin .gh{stroke:var(--min);stroke-linecap:round;opacity:.6}
+@keyframes glow{0%,100%{opacity:.45}50%{opacity:1}}
+#faceHit{pointer-events:none;cursor:default}
+#faceHit.draggable{pointer-events:all;cursor:grab;touch-action:none}
+#tower.dragging #faceHit{cursor:grabbing}
+#bird{transform:translate(200px,146px);transition:transform .55s cubic-bezier(.2,1.6,.4,1)}
+#tower.cuckoo #bird{transform:translate(200px,92px)}
+#tower.cuckoo .bob{animation:bob .6s ease-in-out .4s 3}
+@keyframes bob{50%{transform:translateY(-3px) scale(.82)}}
+.shut{transform-box:fill-box;transition:transform .35s ease-out}
+.shutL{transform-origin:left center}
+.shutR{transform-origin:right center}
+#tower.cuckoo .shut{transform:scaleX(.16)}
+#bubble{opacity:0;transition:opacity .25s .3s}
+#tower.cuckoo #bubble{opacity:1}
+@media (max-width:600px),(max-width:820px) and (orientation:portrait){.wrap{grid-template-columns:minmax(0,1fr);gap:16px}.stage{position:sticky;top:6px;z-index:5;width:min(100%,430px,calc(46vh*.909));box-shadow:0 5px 0 var(--ink),0 -8px 0 8px var(--paper)}}
+@media (max-width:420px){h1{font-size:1.9rem}.panel{padding:14px 12px 16px}.tb{padding:0 12px;font-size:14px}}
+@media (prefers-reduced-motion:reduce){#bird,.shut,#bubble,#tower .ghost,#minNums{transition:none}#tower .ghost.on .halo,#tower.cuckoo .bob{animation:none}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="tb" id="lnkBack" href="index.html">&larr; Back to the arcade</a>
+  <button class="tb" id="btnSound" type="button" aria-pressed="true">Sound: On</button>
+</header>
+<main class="wrap">
+<figure class="stage" id="stage">
+<svg id="tower" viewBox="0 0 400 440" role="img" aria-label="Clock tower with a round clock." focusable="false">
+<defs>
+  <pattern id="brick" x="40" y="100" width="48" height="28" patternUnits="userSpaceOnUse"><rect width="48" height="28" fill="#f0d9b5"/><path d="M0 14H48M0 28H48M24 0V14M0 14V28" stroke="#dcc196" stroke-width="2.5" fill="none"/></pattern>
+  <pattern id="roofTile" x="14" y="10" width="36" height="20" patternUnits="userSpaceOnUse"><rect width="36" height="20" fill="#d9604c"/><path d="M0 10H36M0 20H36M18 0V10M0 10V20" stroke="#b94a39" stroke-width="2.5" fill="none"/></pattern>
+  <path id="cloud" d="M20 70h70a14 14 0 0 0 2-28 20 20 0 0 0-38-6 17.5 17.5 0 0 0-34 8 13 13 0 0 0 0 26z"/>
+  <clipPath id="birdClip"><rect x="140" y="0" width="120" height="92"/></clipPath>
+  <clipPath id="doorClip"><path d="M170 92V64a30 30 0 0 1 60 0V92Z"/></clipPath>
+  <g id="birdShape"><ellipse cx="-3" cy="-17" rx="19" ry="14"/><circle cx="12" cy="-31" r="11"/></g>
+</defs>
+<rect width="400" height="440" fill="#cdeaf7"/>
+<use href="#cloud" transform="translate(10 10) scale(.6)" fill="#fff" stroke="#2f2a4a" stroke-width="5" stroke-linejoin="round"/>
+<use href="#cloud" transform="translate(340 44) scale(.5)" fill="#fff" stroke="#2f2a4a" stroke-width="6" stroke-linejoin="round"/>
+<g stroke="#2f2a4a" stroke-width="3" stroke-linejoin="round">
+  <rect x="12" y="368" width="9" height="52" fill="#a8693f"/><circle cx="16" cy="352" r="26" fill="#6cc17a"/>
+  <rect x="380" y="376" width="9" height="44" fill="#a8693f"/><circle cx="385" cy="360" r="24" fill="#6cc17a"/>
+  <rect x="-4" y="412" width="408" height="34" fill="#8fd19e"/>
+  <rect x="40" y="100" width="320" height="300" fill="url(#brick)"/>
+  <rect x="28" y="394" width="344" height="24" rx="5" fill="#cdb084"/>
+  <path d="M14 102L200 10L386 102Z" fill="url(#roofTile)"/>
+  <rect x="10" y="94" width="380" height="14" rx="6" fill="#b94a39"/>
+</g>
+<g id="cuckooHouse" stroke="#2f2a4a" stroke-width="3" stroke-linejoin="round">
+  <path d="M170 92V64a30 30 0 0 1 60 0V92Z" fill="#3b2a4a"/>
+  <g clip-path="url(#birdClip)">
+    <g id="bird">
+      <g class="bob" transform="scale(.82)">
+        <path d="M-16 -25L-35 -34L-31 -15L-16 -13Z" fill="#f4b73a"/>
+        <path d="M22 -34L35 -30L22 -26Z" fill="#f08a24"/>
+        <use href="#birdShape" fill="#2f2a4a" stroke="#2f2a4a" stroke-width="6"/>
+        <use href="#birdShape" fill="#ffd84a" stroke="none"/>
+        <path d="M-16 -18Q-6 -34 8 -22Q2 -6 -16 -18Z" fill="#f4b73a"/>
+        <path d="M8 -42Q6 -49 12 -49M14 -43Q17 -49 22 -46" fill="none" stroke-linecap="round"/>
+        <circle cx="15" cy="-34" r="3" fill="#2f2a4a" stroke="none"/><circle cx="16" cy="-35" r="1" fill="#fff" stroke="none"/>
+      </g>
+    </g>
+  </g>
+  <g clip-path="url(#doorClip)">
+    <rect class="shut shutL" x="170" y="30" width="30" height="62" fill="#c98b5e"/>
+    <rect class="shut shutR" x="200" y="30" width="30" height="62" fill="#c98b5e"/>
+  </g>
+  <path d="M170 92V64a30 30 0 0 1 60 0V92Z" fill="none"/>
+  <rect x="164" y="90" width="72" height="8" rx="3" fill="#a8693f"/>
+</g>
+<g id="clock" transform="translate(200 250)">
+  <circle r="138" fill="#f2b84b" stroke="#2f2a4a" stroke-width="3"/>
+  <circle r="124" fill="#fffaf0" stroke="#2f2a4a" stroke-width="3"/>
+  <g id="ticks"></g>
+  <g id="nums"></g>
+  <g id="minNums"></g>
+  <g id="ghostHour" class="ghost"><line class="halo" x1="0" y1="12" x2="0" y2="-62" stroke-width="42"/><line class="gh" x1="0" y1="12" x2="0" y2="-62" stroke-width="13"/></g>
+  <g id="ghostMin" class="ghost"><line class="halo" x1="0" y1="18" x2="0" y2="-112" stroke-width="30"/><line class="gh" x1="0" y1="18" x2="0" y2="-112" stroke-width="7"/></g>
+  <g id="hourHand" class="hand"><line class="ol" x1="0" y1="12" x2="0" y2="-62" stroke-width="19"/><line class="fl" x1="0" y1="12" x2="0" y2="-62" stroke-width="13"/><circle class="tip" cx="0" cy="-62" r="1" fill="none"/></g>
+  <g id="minHand" class="hand"><line class="ol" x1="0" y1="18" x2="0" y2="-112" stroke-width="13"/><line class="fl" x1="0" y1="18" x2="0" y2="-112" stroke-width="7"/><circle class="tip" cx="0" cy="-112" r="1" fill="none"/></g>
+  <circle r="10" fill="#2f2a4a"/><circle r="4" fill="#f2b84b"/>
+  <circle id="clockCenter" r="1" fill="none"/>
+  <circle id="faceHit" r="138" fill="transparent"/>
+</g>
+<g id="bubble" stroke="#2f2a4a" stroke-width="3" stroke-linejoin="round"><rect x="300" y="12" width="92" height="38" rx="12" fill="#fff"/><text x="346" y="37" font-size="19" stroke="none">Cuckoo!</text></g>
+</svg>
+</figure>
+
+<div id="side">
+  <section class="panel" id="scrMenu" aria-label="Menu">
+    <h1>Clock <span>Tower</span></h1>
+    <p class="lede">Help the cuckoo bird keep the tower clock right!</p>
+    <div class="seg" role="group" aria-label="Choose a game">
+      <button type="button" data-mode="set" aria-pressed="true">Set the clock</button>
+      <button type="button" data-mode="read" aria-pressed="false">Read the clock</button>
+    </div>
+    <p class="modehelp" id="modeHelp"></p>
+    <ul class="levels" id="levels"></ul>
+    <label class="chk"><input type="checkbox" id="chkHelper"> Show minute numbers (5, 10, 15 ...)</label>
+    <p class="small">Stars: 3 = no hints needed, 2 = a hint on up to 3 clocks, 1 = you finished the round. No timers, no rush.</p>
+  </section>
+
+  <section class="panel hidden" id="scrPlay" aria-label="Game">
+    <div class="prog"><span id="kicker"></span><ol class="dots" id="dots" aria-label="Round progress"></ol></div>
+    <div id="uiSet">
+      <p class="kick">Set the clock to</p>
+      <div class="digital" id="digital">3:30</div>
+      <p class="caption" id="caption"></p>
+      <div class="ctls" id="ctls"></div>
+      <button class="btn big" id="btnCheck" type="button">Check</button>
+    </div>
+    <div id="uiRead">
+      <p class="kick">What time does the clock show?</p>
+      <div class="opts" id="opts"></div>
+    </div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+    <div class="row">
+      <button class="btn ghost" id="btnHint" type="button">Hint</button>
+      <button class="btn ghost" id="btnHear" type="button">Hear it</button>
+      <button class="btn" id="btnNext" type="button">Next</button>
+      <button class="btn ghost" id="btnMenu" type="button">Menu</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="scrDone" aria-label="Round results">
+    <h2 id="doneTitle">Round complete!</h2>
+    <div class="bigstars" id="doneStars" role="img" aria-label="Stars earned"></div>
+    <span class="badge hidden" id="doneBest">New best!</span>
+    <p id="doneText" style="margin-top:8px"></p>
+    <p class="small">Stars: 3 = no hints needed, 2 = a hint on up to 3 clocks, 1 = you finished the round.</p>
+    <div class="row">
+      <button class="btn" id="btnAgain" type="button">Play again</button>
+      <button class="btn alt" id="btnNextLevel" type="button">Next level</button>
+      <button class="btn ghost" id="btnDoneMenu" type="button">Menu</button>
+    </div>
+  </section>
+</div>
+</main>
+<div class="sr" id="live" role="status" aria-live="polite"></div>
+<noscript><p style="padding:2em">Clock Tower needs JavaScript turned on.</p></noscript>
+<script>
+const LL = (() => {
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ac = null, muted = false;
+  try { muted = localStorage.getItem('ll.muted') === '1'; } catch (e) {}
+  function ctx() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+  function tone(freq, dur = .12, type = 'sine', vol = .15, when = 0) {
+    if (muted) return; const a = ctx(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = freq;
+    const t = a.currentTime + when; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  const sfx = {
+    tap() { tone(520, .07, 'triangle', .12); },
+    good() { [523, 659, 784].forEach((f, i) => tone(f, .16, 'sine', .14, i * .09)); },
+    again() { tone(330, .12, 'triangle', .1); tone(294, .16, 'triangle', .1, .1); },
+    win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .2, 'sine', .15, i * .11)); },
+    pop() { tone(700, .05, 'square', .06); tone(980, .07, 'sine', .08, .03); },
+  };
+  function say(text, opts = {}) {
+    if (muted || !('speechSynthesis' in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.rate = opts.rate || .9; u.pitch = opts.pitch || 1.1; u.lang = 'en-US';
+      const vs = speechSynthesis.getVoices();
+      const v = vs.find(v => /en[-_]US/i.test(v.lang) && /(Zira|Aria|Jenny|Samantha|Google US)/i.test(v.name)) || vs.find(v => /^en/i.test(v.lang));
+      if (v) u.voice = v; speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  const save = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+  function setMuted(m) { muted = m; try { localStorage.setItem('ll.muted', m ? '1' : '0'); } catch (e) {} if (m && 'speechSynthesis' in window) speechSynthesis.cancel(); }
+  return { reduceMotion, sfx, say, save, get muted() { return muted; }, setMuted, ctx };
+})();
+
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const NS = 'http://www.w3.org/2000/svg';
+const CX = 200, CY = 250;
+const SAVE_KEY = 'clockTower.v1';
+const QUESTIONS = 8;
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); const x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+function el(name, attrs, parent) { const e = document.createElementNS(NS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+
+// ---- time words -------------------------------------------------------
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty'];
+function numWord(n) { if (n < 20) return WORDS[n]; const o = n % 10; return TENS[Math.floor(n / 10)] + (o ? '-' + WORDS[o] : ''); }
+const nextH = h => (h === 12 ? 1 : h + 1);
+function fmt(h, m) { return h + ':' + (m < 10 ? '0' : '') + m; }
+function saidTime(h, m) { return m === 0 ? numWord(h) + " o'clock" : m < 10 ? numWord(h) + ' oh ' + numWord(m) : numWord(h) + ' ' + numWord(m); }
+function caption(h, m) {
+  if (m === 0) return h + " o'clock";
+  if (m === 30) return 'half past ' + h;
+  if (m === 15) return 'quarter past ' + h;
+  if (m === 45) return 'quarter to ' + nextH(h);
+  return '';
+}
+function capWords(h, m) {
+  if (m === 0) return numWord(h) + " o'clock";
+  if (m === 30) return 'half past ' + numWord(h);
+  if (m === 15) return 'quarter past ' + numWord(h);
+  if (m === 45) return 'quarter to ' + numWord(nextH(h));
+  return '';
+}
+function hourPhrase(h, m) {
+  if (m === 0) return 'the short hand points right at the ' + h;
+  if (m === 30) return 'the short hand is half way between the ' + h + ' and the ' + nextH(h);
+  if (m < 30) return 'the short hand is just past the ' + h;
+  return 'the short hand is almost at the ' + nextH(h) + ', but the hour is still ' + h;
+}
+function minutePhrase(m) {
+  if (m === 0) return 'the long hand points straight up at the 12';
+  if (m % 5 === 0) return 'the long hand points at the ' + (m / 5) + ', because ' + (m / 5) + ' times 5 is ' + m;
+  const n = Math.floor(m / 5), r = m % 5;
+  return 'the long hand is ' + r + (r > 1 ? ' ticks' : ' tick') + ' past the ' + (n || 12) + ', which is ' + m + ' minutes';
+}
+function describe(T) {
+  const t = fromT(T), n = t.m / 5;
+  const hp = t.m === 0 ? 'at the ' + t.h : 'between the ' + t.h + ' and the ' + nextH(t.h);
+  const mp = Number.isInteger(n) ? 'at the ' + (n || 12) : 'between the ' + (Math.floor(n) || 12) + ' and the ' + (Math.floor(n) + 1);
+  return 'Clock tower. The short hour hand points ' + hp + '. The long minute hand points ' + mp + '.';
+}
+
+// ---- model --------------------------------------------------------------
+// T = minutes since 12:00 on a 12-hour dial (0..719). hourDeg = T*0.5 = (hour%12)*30 + minute*0.5 ; minuteDeg = (T%60)*6
+const toT = (h, m) => (h % 12) * 60 + m;
+function fromT(T) { T = ((T % 720) + 720) % 720; return { h: Math.floor(T / 60) || 12, m: T % 60 }; }
+function degs(T) { T = ((T % 720) + 720) % 720; return { hour: T * 0.5, min: (T % 60) * 6 }; }
+
+const LEVELS = [
+  { name: "O'clock", ex: 'like 3:00', step: 30, snap: 5, fine: 0 },
+  { name: 'Half hours', ex: 'like 3:30', step: 30, snap: 5, fine: 0 },
+  { name: 'Quarter past and quarter to', ex: 'like 3:15 or 3:45', step: 15, snap: 5, fine: 0 },
+  { name: 'Every 5 minutes', ex: 'like 3:25', step: 5, snap: 5, fine: 0 },
+  { name: 'Any minute', ex: 'like 3:27', step: 5, snap: 1, fine: 1 },
+];
+function minuteFor(level) {
+  if (level === 1) return 0;
+  if (level === 2) return pick([0, 30]);
+  if (level === 3) return Math.random() < .75 ? pick([15, 45]) : pick([0, 30]);
+  if (level === 4) return 5 * rnd(12);
+  return rnd(60);
+}
+function startMinuteFor(level) {
+  if (level === 1) return 0;
+  if (level === 2) return pick([0, 30]);
+  if (level === 3) return pick([0, 15, 30, 45]);
+  if (level === 4) return 5 * rnd(12);
+  return rnd(60);
+}
+
+const state = {
+  screen: 'menu', mode: 'set', level: 1, qi: 0, total: QUESTIONS, phase: 'idle',
+  target: { h: 3, m: 0 }, T: 0, options: [], answerIdx: -1, picked: [],
+  hintShown: false, hintQs: 0, wrongs: 0, solved: 0, used: [], stars: 0, isBest: false,
+};
+function loadSave() {
+  const d = LL.save.get(SAVE_KEY, null);
+  const out = { v: 1, stars: { set: [0, 0, 0, 0, 0], read: [0, 0, 0, 0, 0] }, rounds: 0, helper: false };
+  if (d && typeof d === 'object') {
+    ['set', 'read'].forEach(k => {
+      if (d.stars && Array.isArray(d.stars[k])) for (let i = 0; i < 5; i++) { const v = Math.floor(Number(d.stars[k][i])); out.stars[k][i] = v >= 0 && v <= 3 ? v : 0; }
+    });
+    out.rounds = Number(d.rounds) > 0 ? Math.floor(Number(d.rounds)) : 0;
+    out.helper = !!d.helper;
+  }
+  return out;
+}
+let saved = loadSave();
+function persist() { LL.save.set(SAVE_KEY, saved); }
+
+// ---- clock face & hands ------------------------------------------------
+const view = { hour: 0, min: 0, raf: 0, anim: false };
+function buildFace() {
+  const ticks = $('#ticks'), nums = $('#nums'), mn = $('#minNums');
+  for (let i = 0; i < 60; i++) {
+    const a = i * Math.PI / 30, big = i % 5 === 0, r1 = big ? 103 : 111, r2 = 119;
+    el('line', { x1: (Math.sin(a) * r1).toFixed(2), y1: (-Math.cos(a) * r1).toFixed(2), x2: (Math.sin(a) * r2).toFixed(2), y2: (-Math.cos(a) * r2).toFixed(2), 'stroke-width': big ? 4 : 2 }, ticks);
+  }
+  for (let n = 1; n <= 12; n++) {
+    const a = n * Math.PI / 6;
+    el('text', { x: (Math.sin(a) * 82).toFixed(2), y: (-Math.cos(a) * 82).toFixed(2), dy: '.36em' }, nums).textContent = String(n);
+    el('text', { x: (Math.sin(a) * 52).toFixed(2), y: (-Math.cos(a) * 52).toFixed(2), dy: '.36em' }, mn).textContent = n === 12 ? '0' : String(n * 5);
+  }
+}
+function wrapNear(from, to) { return from + ((((to - from) % 360) + 540) % 360 - 180); }
+function paintHands() {
+  $('#hourHand').setAttribute('transform', 'rotate(' + view.hour + ')');
+  $('#minHand').setAttribute('transform', 'rotate(' + view.min + ')');
+}
+function showTime(T, animate) {
+  state.T = ((T % 720) + 720) % 720;
+  const g = degs(state.T), toH = wrapNear(view.hour, g.hour), toM = wrapNear(view.min, g.min);
+  cancelAnimationFrame(view.raf); view.anim = false;
+  $('#tower').setAttribute('aria-label', describe(state.T));
+  if (!animate || LL.reduceMotion || (Math.abs(toH - view.hour) < 0.01 && Math.abs(toM - view.min) < 0.01)) { view.hour = toH; view.min = toM; paintHands(); return; }
+  const h0 = view.hour, m0 = view.min, t0 = performance.now(), dur = 260 + Math.min(340, Math.abs(toM - m0) * 1.1);
+  view.anim = true;
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    if (k >= 1) { view.hour = toH; view.min = toM; view.anim = false; }
+    else { view.hour = h0 + (toH - h0) * e; view.min = m0 + (toM - m0) * e; view.raf = requestAnimationFrame(step); }
+    paintHands();
+  };
+  view.raf = requestAnimationFrame(step);
+}
+function showGhosts() {
+  const g = degs(toT(state.target.h, state.target.m));
+  $('#ghostHour').setAttribute('transform', 'rotate(' + g.hour + ')');
+  $('#ghostMin').setAttribute('transform', 'rotate(' + g.min + ')');
+  $('#ghostHour').classList.add('on'); $('#ghostMin').classList.add('on'); $('#tower').classList.add('hinting');
+}
+function hideGhosts() { $('#ghostHour').classList.remove('on'); $('#ghostMin').classList.remove('on'); $('#tower').classList.remove('hinting'); }
+
+// ---- cuckoo + sound -------------------------------------------------------
+function setCuckoo(on) { $('#tower').classList.toggle('cuckoo', !!on); }
+function blip(freq, dur, type, vol, when) {
+  if (LL.muted) return; const a = LL.ctx(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine'; o.frequency.value = freq;
+  const t = a.currentTime + (when || 0); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol || .15, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+function cuckooSound() {
+  [0, .5].forEach(w => { blip(784, .16, 'sine', .17, w); blip(622, .3, 'sine', .17, w + .17); });
+  [523, 659, 784, 1047].forEach((f, i) => blip(f, .18, 'sine', .12, 1.05 + i * .09));
+}
+let liveFlip = false;
+function announce(s) { liveFlip = !liveFlip; $('#live').textContent = s + (liveFlip ? '' : '\u00a0'); }
+function speak(s) { LL.say(s); }
+function setMsg(html, cls) { const m = $('#msg'); m.className = 'msg' + (cls ? ' ' + cls : ''); m.innerHTML = html || ''; }
+
+// ---- screens ------------------------------------------------------------------
+function show(screen) {
+  state.screen = screen;
+  $('#scrMenu').classList.toggle('hidden', screen !== 'menu');
+  $('#scrPlay').classList.toggle('hidden', screen !== 'play');
+  $('#scrDone').classList.toggle('hidden', screen !== 'done');
+  $('#faceHit').classList.toggle('draggable', screen === 'play' && state.mode === 'set');
+}
+function starsHTML(n) { let s = ''; for (let i = 0; i < 3; i++) s += i < n ? '&#9733;' : '<i>&#9733;</i>'; return s; }
+function renderMenu() {
+  const ul = $('#levels'); ul.innerHTML = '';
+  LEVELS.forEach((L, i) => {
+    const s = saved.stars[state.mode][i], li = document.createElement('li');
+    li.innerHTML = '<button class="lvl" type="button" data-l="' + (i + 1) + '"><span class="n">' + (i + 1) + '</span><span class="t"><b>' + L.name + '</b><small>' + L.ex + '</small></span><span class="stars" role="img" aria-label="' + s + ' of 3 stars">' + starsHTML(s) + '</span></button>';
+    ul.appendChild(li);
+  });
+  $$('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+  $('#modeHelp').textContent = state.mode === 'set' ? 'We show a time like 3:30. Turn the clock hands to match it!' : 'Look at the clock, then pick the time it shows.';
+}
+function toMenu() {
+  state.phase = 'idle'; setCuckoo(false); hideGhosts();
+  try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
+  show('menu'); renderMenu(); showTime(toT(10, 10), true); window.scrollTo(0, 0);
+}
+function buildDots() { const d = $('#dots'); d.innerHTML = ''; for (let i = 0; i < state.total; i++) d.appendChild(document.createElement('li')); }
+function markDots() {
+  $$('#dots li').forEach((li, i) => { li.className = (i < state.qi || (i === state.qi && state.phase === 'correct')) ? 'done' : (i === state.qi ? 'cur' : ''); });
+  $('#dots').setAttribute('aria-label', 'Question ' + (state.qi + 1) + ' of ' + state.total);
+}
+function stepBtn(d, label, aria, cls) { return '<button type="button" class="step ' + cls + '" data-d="' + d + '" aria-label="' + aria + '">' + label + '</button>'; }
+function buildCtls() {
+  const L = LEVELS[state.level - 1];
+  let h = '<div class="ctl hr"><h3>Hour</h3><div class="pair">' + stepBtn(-60, '&minus;1', 'Hour back one', 'hr') + stepBtn(60, '+1', 'Hour forward one', 'hr') + '</div></div>';
+  h += '<div class="ctl mn"><h3>Minutes</h3><div class="pair">' + stepBtn(-L.step, '&minus;' + L.step, 'Minutes back ' + L.step, 'mn') + stepBtn(L.step, '+' + L.step, 'Minutes forward ' + L.step, 'mn') + '</div>';
+  if (L.fine) h += '<div class="pair">' + stepBtn(-1, '&minus;1', 'Minutes back one', 'mn') + stepBtn(1, '+1', 'Minutes forward one', 'mn') + '</div>';
+  $('#ctls').innerHTML = h + '</div>';
+}
+
+// ---- rounds -----------------------------------------------------------------------
+function promptSpeech() {
+  const t = state.target;
+  if (state.mode === 'read') return 'What time does the clock show?';
+  return 'Set the clock to ' + saidTime(t.h, t.m) + '.' + (state.level <= 3 && t.m !== 0 ? ' That is ' + capWords(t.h, t.m) + '.' : '');
+}
+function startRound(mode, level) {
+  mode = mode === 'read' ? 'read' : 'set';
+  level = Math.max(1, Math.min(5, parseInt(level, 10) || 1));
+  state.mode = mode; state.level = level; state.qi = 0; state.total = QUESTIONS;
+  state.hintQs = 0; state.wrongs = 0; state.solved = 0; state.used = []; state.stars = 0; state.isBest = false;
+  $('#uiSet').classList.toggle('hidden', mode !== 'set');
+  $('#uiRead').classList.toggle('hidden', mode !== 'read');
+  buildDots(); buildCtls(); show('play'); window.scrollTo(0, 0); newQuestion();
+}
+function newQuestion() {
+  const L = state.level;
+  setCuckoo(false); hideGhosts(); setMsg('');
+  state.phase = 'asking'; state.hintShown = false; state.picked = [];
+  let t = null;
+  for (let i = 0; i < 80; i++) { t = { h: 1 + rnd(12), m: minuteFor(L) }; if (state.used.indexOf(t.h * 100 + t.m) < 0) break; }
+  state.used.push(t.h * 100 + t.m); state.target = t;
+  $('#btnNext').classList.add('hidden'); $('#btnHint').disabled = false; $('#opts').classList.remove('done');
+  markDots();
+  $('#kicker').textContent = 'Level ' + L + ' - ' + (state.qi + 1) + ' of ' + state.total;
+  if (state.mode === 'set') {
+    let T; do { T = toT(1 + rnd(12), startMinuteFor(L)); } while (T === toT(t.h, t.m));
+    showTime(T, true);
+    $('#digital').textContent = fmt(t.h, t.m);
+    $('#caption').textContent = L <= 3 ? caption(t.h, t.m) : '';
+    $('#btnCheck').disabled = false;
+  } else {
+    showTime(toT(t.h, t.m), true); buildOptions(t);
+  }
+  speak(promptSpeech());
+  announce(state.mode === 'set' ? 'Set the clock to ' + fmt(t.h, t.m) : 'What time does the clock show? Three choices.');
+}
+function distractors(t) {
+  const h = t.h, m = t.m, ans = fmt(h, m), out = [], nm = (Math.round(m / 5) % 12) || 12;
+  const add = (hh, mm) => { hh = (((hh - 1) % 12) + 12) % 12 + 1; mm = ((mm % 60) + 60) % 60; const s = fmt(hh, mm); if (s !== ans && out.indexOf(s) < 0) out.push(s); };
+  const kinds = [
+    () => add(nm, (h % 12) * 5),                                          // swapped hands
+    () => add(m >= 30 ? h + 1 : h + (Math.random() < .5 ? 1 : -1), m),   // off by an hour
+    () => add(h, nm),                                                     // long-hand number read as minutes
+    () => add(h, 60 - m),                                                 // mirrored minutes
+  ];
+  shuffle(kinds).forEach(k => { if (out.length < 2) k(); });
+  let g = 0; while (out.length < 2 && g++ < 40) add(h + rnd(3) - 1, m + 5 * (1 + rnd(11)));
+  return out.slice(0, 2);
+}
+function buildOptions(t) {
+  const ans = fmt(t.h, t.m), opts = shuffle([ans].concat(distractors(t)));
+  state.options = opts; state.answerIdx = opts.indexOf(ans); state.picked = [];
+  const box = $('#opts'); box.innerHTML = '';
+  opts.forEach((s, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.textContent = s; b.dataset.i = String(i); b.setAttribute('aria-keyshortcuts', String(i + 1));
+    b.addEventListener('click', () => choose(i)); box.appendChild(b);
+  });
+}
+function choose(i) {
+  if (state.mode !== 'read' || state.phase !== 'asking' || state.picked.indexOf(i) >= 0) return;
+  LL.ctx();
+  const b = $$('.opt')[i]; if (!b) return;
+  if (i === state.answerIdx) { b.classList.add('ok'); $('#opts').classList.add('done'); rightAnswer(); }
+  else { state.picked.push(i); b.classList.add('no'); b.setAttribute('aria-disabled', 'true'); giveHint(false); }
+}
+function check() {
+  if (state.mode !== 'set' || state.phase !== 'asking') return;
+  LL.ctx();
+  if (state.T === toT(state.target.h, state.target.m)) rightAnswer(); else giveHint(false);
+}
+function giveHint(manual) {
+  if (state.phase !== 'asking') return;
+  if (!state.hintShown) { state.hintShown = true; state.hintQs++; }
+  if (manual) LL.sfx.tap(); else { state.wrongs++; LL.sfx.again(); }
+  showGhosts();
+  const t = state.target, set = state.mode === 'set';
+  const lead = manual ? 'Here is a hint!' : (set ? "Not quite yet. Let's try again!" : "Not that one. Let's look again!");
+  const how = 'The short hand points at the hour. The long hand points at the minutes.';
+  const act = set ? ' Move your hands onto the glowing hands.' : ' The glowing hands show where to look.';
+  const more = set ? 'For ' + fmt(t.h, t.m) + ', ' + hourPhrase(t.h, t.m) + ', and ' + minutePhrase(t.m) + '.'
+                   : 'Here, ' + hourPhrase(t.h, t.m) + '. And ' + minutePhrase(t.m) + '.';
+  setMsg('<b>' + lead + '</b> ' + how + act + '<span class="more">' + more + '</span>');
+  speak(lead + ' ' + how + act);
+}
+function rightAnswer() {
+  if (state.phase !== 'asking') return;
+  state.phase = 'correct'; state.solved++; hideGhosts();
+  const t = state.target, c = capWords(t.h, t.m), shown = caption(t.h, t.m);
+  setCuckoo(true); cuckooSound();
+  setMsg('<b>Cuckoo! ' + fmt(t.h, t.m) + ' is right.</b>' + (shown && t.m !== 0 ? ' That is ' + shown + '.' : ''), 'good');
+  speak('Cuckoo! ' + saidTime(t.h, t.m) + '.' + (c && t.m !== 0 ? ' That is ' + c + '.' : ''));
+  $('#btnCheck').disabled = true; $('#btnHint').disabled = true;
+  const nx = $('#btnNext'); nx.textContent = state.qi + 1 >= state.total ? 'Finish' : 'Next'; nx.classList.remove('hidden');
+  markDots(); announce('Correct. ' + fmt(t.h, t.m));
+  try { nx.focus({ preventScroll: true }); } catch (e) {}
+}
+function next() {
+  if (state.phase !== 'correct') return;
+  if (state.qi + 1 >= state.total) finishRound(); else { state.qi++; newQuestion(); }
+}
+function finishRound() {
+  const stars = state.hintQs === 0 ? 3 : (state.hintQs <= 3 ? 2 : 1);
+  const arr = saved.stars[state.mode], prev = arr[state.level - 1];
+  state.stars = stars; state.phase = 'done'; state.isBest = stars > prev;
+  arr[state.level - 1] = Math.max(prev, stars); saved.rounds++; persist();
+  $('#doneTitle').textContent = stars === 3 ? 'Wonderful!' : 'Round complete!';
+  $('#doneStars').innerHTML = starsHTML(stars); $('#doneStars').setAttribute('aria-label', stars + ' of 3 stars');
+  $('#doneBest').classList.toggle('hidden', !state.isBest);
+  $('#doneText').textContent = stars === 3 ? 'Perfect! You did not need a single hint.'
+    : stars === 2 ? 'Great job! You used a hint on ' + state.hintQs + (state.hintQs === 1 ? ' clock.' : ' clocks.')
+    : 'You finished all ' + state.total + ' clocks! Try again to earn more stars.';
+  $('#btnNextLevel').classList.toggle('hidden', state.level >= LEVELS.length);
+  show('done'); LL.sfx.win();
+  speak('Round complete! You earned ' + stars + (stars === 1 ? ' star.' : ' stars.'));
+  announce('Round complete. ' + stars + ' of 3 stars.');
+}
+function nudge(d) {
+  if (state.screen !== 'play' || state.mode !== 'set' || state.phase !== 'asking') return;
+  LL.ctx(); LL.sfx.tap(); showTime(state.T + d, true);
+  const c = fromT(state.T); announce('The clock now shows ' + fmt(c.h, c.m));
+}
+
+// ---- input: drag the hands, keyboard, buttons ---------------------------------------
+const svg = $('#tower'), face = $('#faceHit');
+let drag = null, lastTick = 0;
+function localPoint(ev) {
+  const m = svg.getScreenCTM(); if (!m) return null;
+  const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(m.inverse()); return { x: p.x - CX, y: p.y - CY };
+}
+const angOf = p => { const a = Math.atan2(p.x, -p.y) * 180 / Math.PI; return a < 0 ? a + 360 : a; };
+const angDist = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+function applyDrag(p, first) {
+  const a = angOf(p), L = LEVELS[state.level - 1], cur = state.T % 60;
+  let T;
+  if (drag.kind === 'min') {
+    let m = Math.round(a / 6 / L.snap) * L.snap; if (m >= 60) m -= 60;
+    if (first) T = Math.floor(state.T / 60) * 60 + m;
+    else { let d = m - drag.m; if (d > 30) d -= 60; else if (d < -30) d += 60; if (d === 0) return; T = state.T + d; }
+    drag.m = m;
+  } else {
+    let idx = Math.round((a - cur * 0.5) / 30); idx = ((idx % 12) + 12) % 12; T = idx * 60 + cur;
+  }
+  if (T === state.T) return;
+  const now = performance.now(); if (now - lastTick > 70) { LL.sfx.tap(); lastTick = now; }
+  showTime(T, false);
+}
+face.addEventListener('pointerdown', ev => {
+  if (state.screen !== 'play' || state.mode !== 'set' || state.phase !== 'asking' || drag) return;
+  const p = localPoint(ev); if (!p) return;
+  const r = Math.hypot(p.x, p.y); if (r < 16) return;
+  const a = angOf(p), g = degs(state.T), dh = angDist(a, g.hour), dm = angDist(a, g.min);
+  drag = { kind: (r < 78 && dh < 18 && dh < dm) ? 'hour' : 'min', id: ev.pointerId, m: 0 };
+  try { face.setPointerCapture(ev.pointerId); } catch (e) {}
+  svg.classList.add('dragging'); ev.preventDefault(); LL.ctx(); applyDrag(p, true);
+});
+face.addEventListener('pointermove', ev => {
+  if (!drag || ev.pointerId !== drag.id) return;
+  const p = localPoint(ev); if (p && Math.hypot(p.x, p.y) > 6) applyDrag(p, false);
+});
+function endDrag(ev) {
+  if (!drag || (ev && ev.pointerId !== drag.id)) return;
+  drag = null; svg.classList.remove('dragging');
+  if (state.mode === 'set' && state.phase === 'asking') { const c = fromT(state.T); announce('The clock now shows ' + fmt(c.h, c.m)); }
+}
+face.addEventListener('pointerup', endDrag); face.addEventListener('pointercancel', endDrag); face.addEventListener('lostpointercapture', endDrag);
+face.addEventListener('touchmove', ev => { if (drag) ev.preventDefault(); }, { passive: false });
+
+document.addEventListener('keydown', e => {
+  if (e.altKey || e.ctrlKey || e.metaKey || state.screen !== 'play') return;
+  const onCtl = !!(e.target && /^(BUTTON|A|INPUT)$/.test(e.target.tagName));
+  if (state.mode === 'set' && state.phase === 'asking') {
+    const L = LEVELS[state.level - 1], ks = L.fine || L.step;
+    const map = { ArrowRight: ks, ArrowUp: ks, ArrowLeft: -ks, ArrowDown: -ks, PageUp: 60, PageDown: -60 };
+    if (Object.prototype.hasOwnProperty.call(map, e.key)) { e.preventDefault(); nudge(map[e.key]); return; }
+    if (e.key === 'Enter' && !onCtl) { e.preventDefault(); check(); }
+  } else if (state.mode === 'read' && state.phase === 'asking') {
+    const i = ['1', '2', '3'].indexOf(e.key); if (i >= 0) choose(i);
+  } else if (state.phase === 'correct' && e.key === 'Enter' && !onCtl) { e.preventDefault(); next(); }
+});
+
+$('#ctls').addEventListener('click', e => { const b = e.target.closest('.step'); if (b) nudge(parseInt(b.dataset.d, 10)); });
+$('#btnCheck').addEventListener('click', check);
+$('#btnNext').addEventListener('click', next);
+$('#btnHint').addEventListener('click', () => giveHint(true));
+$('#btnHear').addEventListener('click', () => { LL.ctx(); speak(promptSpeech()); });
+$('#btnMenu').addEventListener('click', toMenu);
+$('#btnDoneMenu').addEventListener('click', toMenu);
+$('#btnAgain').addEventListener('click', () => startRound(state.mode, state.level));
+$('#btnNextLevel').addEventListener('click', () => startRound(state.mode, Math.min(LEVELS.length, state.level + 1)));
+$('#levels').addEventListener('click', e => { const b = e.target.closest('.lvl'); if (b) { LL.ctx(); startRound(state.mode, parseInt(b.dataset.l, 10)); } });
+$$('.seg button').forEach(b => b.addEventListener('click', () => { state.mode = b.dataset.mode; renderMenu(); }));
+$('#chkHelper').addEventListener('change', e => { saved.helper = e.target.checked; persist(); svg.classList.toggle('helper', saved.helper); });
+function syncSound() { const b = $('#btnSound'); b.textContent = 'Sound: ' + (LL.muted ? 'Off' : 'On'); b.setAttribute('aria-pressed', String(!LL.muted)); }
+$('#btnSound').addEventListener('click', () => { LL.setMuted(!LL.muted); syncSound(); if (!LL.muted) LL.sfx.tap(); });
+['pointerdown', 'keydown'].forEach(n => addEventListener(n, () => LL.ctx(), { passive: true }));
+
+// ---- test hook: open clock-tower.html?debug ---------------------------------------------
+if (/[?&]debug\b/.test(location.search)) {
+  const hands = () => {
+    const ang = sel => { const m = /rotate\(\s*(-?[\d.eE+-]+)/.exec($(sel).getAttribute('transform') || ''); const a = m ? parseFloat(m[1]) : NaN; return Math.round((((a % 360) + 360) % 360) * 1000) / 1000; };
+    const c = fromT(state.T);
+    return { hourDeg: ang('#hourHand'), minuteDeg: ang('#minHand'), hour: c.h, minute: c.m, settled: !view.anim };
+  };
+  window.__clock = {
+    get state() { return state; },
+    get saved() { return saved; },
+    start(mode, level) { startRound(mode, level); return state; },
+    startLevel(n) { startRound(state.mode, n); return state; },
+    solve() {
+      if (state.phase !== 'asking') return state;
+      if (state.mode === 'set') { showTime(toT(state.target.h, state.target.m), false); check(); } else choose(state.answerIdx);
+      return state;
+    },
+    answerWrong() {
+      if (state.phase !== 'asking') return state;
+      if (state.mode === 'set') { const t = state.target; showTime(toT(t.h % 12 + 1, t.m), false); check(); }
+      else { const i = [0, 1, 2].find(k => k !== state.answerIdx && state.picked.indexOf(k) < 0); if (i !== undefined) choose(i); }
+      return state;
+    },
+    answer(ok) { return ok ? this.solve() : this.answerWrong(); },
+    next() { next(); return state; },
+    menu() { toMenu(); return state; },
+    setClock(h, m) { showTime(toT(h, m), false); return hands(); },
+    hands,
+  };
+}
+
+// ---- start ---------------------------------------------------------------------------------------
+buildFace();
+svg.classList.toggle('helper', saved.helper); $('#chkHelper').checked = saved.helper;
+syncSound(); renderMenu(); show('menu'); showTime(toT(10, 10), false);
+})();
+</script>
+</body>
+</html>

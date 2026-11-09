@@ -1,6 +1,6 @@
 # Learning Arcade
 
-Free browser games that turn practice into play: touch typing, math facts, spelling and geography.
+Free browser games that turn practice into play: touch typing, math facts, spelling, geography, telling time, counting, fractions and early letters.
 No sign-up, no ads, no tracking. Every game runs in any modern browser, and the ones in this repo are a single HTML file each.
 
 ![The Learning Arcade hub](docs/screenshots/hub.png)
@@ -15,6 +15,10 @@ No sign-up, no ads, no tracking. Every game runs in any modern browser, and the 
 | [Math Blaster](math-blaster.html) | Quick arithmetic with falling answer blocks | 6+ | Keyboard |
 | [Spelling Bee](spelling-bee.html) | Spelling: see it, hear it, clues, speed rounds, jumbles | 7+ | Keyboard |
 | [GeoQuest](geoquest.html) | Countries, capitals, landmarks and flags on a world map | 8+ | Mouse or touch, plus keyboard |
+| [Clock Tower](clock-tower.html) **(new)** | Telling time: set the tower clock, read it, down to the minute | 6+ | Mouse or touch |
+| [Counting Critters](counting-critters.html) **(new)** | Counting to 10 and beyond with bunnies, ducklings, ladybugs and frogs | 4-7 | Mouse or touch |
+| [Fraction Pizza](fraction-pizza.html) **(new)** | Fractions: serve, compare, match and add slices | 8+ | Mouse or touch |
+| [Letter Lagoon](letter-lagoon.html) **(new)** | Early letters: pop, match big and little, first sounds | 3-6 | Mouse or touch |
 
 ### Plumber Typing
 
